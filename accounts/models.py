@@ -10,6 +10,18 @@ from django.db import models
 class User(AbstractUser):
     """Modèle utilisateur étendu avec informations médicales."""
 
+    # Résolution des conflits avec auth.User
+    groups = models.ManyToManyField(
+        'auth.Group',
+        blank=True,
+        related_name='accounts_user_set'
+    )
+    user_permissions = models.ManyToManyField(
+        'auth.Permission',
+        blank=True,
+        related_name='accounts_user_set'
+    )
+
     # Numéro de téléphone du patient
     phone = models.CharField(max_length=20, blank=True)
     # Adresse postale
