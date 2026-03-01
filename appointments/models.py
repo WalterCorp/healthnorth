@@ -12,6 +12,12 @@ class Specialty(models.Model):
     # Durée moyenne d'un rendez-vous pour cette spécialité
     duration_minutes = models.IntegerField(default=30)
 
+    # Métadonnées du modèle
+    class Meta:
+        """Options du modèle Specialty."""
+        verbose_name = "Spécialité"
+        verbose_name_plural = "Spécialités"
+
     def __str__(self) -> str:
         """Retourne le nom de la spécialité."""
         return str(self.name)

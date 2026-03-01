@@ -125,3 +125,4 @@ STATIC_URL = 'static/'
 
 # Indique à Django d'utiliser notre modèle User personnalisé
 AUTH_USER_MODEL = 'accounts.User'
+

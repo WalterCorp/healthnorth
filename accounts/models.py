@@ -32,3 +32,4 @@ class User(AbstractUser):
     def __str__(self) -> str:
         """Représentation lisible de l'objet."""
         return str(f"{self.first_name} {self.last_name}")
+
