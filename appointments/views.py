@@ -1,5 +1,6 @@
 """Vues de l'application appointments — gestion des rendez-vous."""
 
+from datetime import datetime
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -27,9 +28,12 @@ def appointment_list(request):
 
 @login_required
 def appointment_new(request):
-    """Vue de prise d'un nouveau rendez-vous."""
-    # Récupère tous les spécialistes et spécialités pour les afficher
-    # dans le formulaire de sélection
+    """Vue de prise d'un nouveau rendez-vous.
+
+    Au lieu de créer directement le rendez-vous, on stocke les données
+    en session et on redirige vers la page de synthèse.
+    La session est un stockage côté serveur lié à l'utilisateur connecté.
+    """
     specialists = Specialist.objects.all()  # pylint: disable=no-member
     specialties = Specialty.objects.all()  # pylint: disable=no-member
 
@@ -37,28 +41,72 @@ def appointment_new(request):
         # Récupère les données du formulaire
         specialist_id = request.POST.get('specialist')
         date = request.POST.get('date')
-        # Notes optionnelles — valeur par défaut = chaîne vide
-        notes = request.POST.get('notes', '')
+        notes = request.POST.get('notes', '').strip()
 
-        # Crée le rendez-vous en base via l'ORM Django
-        # Équivalent SQL : INSERT INTO appointments_appointment ...
-        Appointment.objects.create(  # pylint: disable=no-member
-            patient=request.user,
-            specialist_id=specialist_id,
-            date=date,
-            notes=notes
-        )
-        messages.success(request, 'Rendez-vous pris avec succès !')
-        # Redirige vers la liste des rendez-vous
-        return redirect('appointment_list')
+        # Stocke les données en session pour les récupérer sur la page de synthèse
+        # La session évite de passer les données sensibles dans l'URL
+        request.session['appointment_data'] = {
+            'specialist_id': specialist_id,
+            'date': date,
+            'notes': notes,
+        }
+        # Redirige vers la page de synthèse au lieu de créer directement le RDV
+        return redirect('appointment_confirm')
 
-    # Affichage initial du formulaire avec les données disponibles
     return render(request, 'appointments/new.html', {
         'specialists': specialists,
         'specialties': specialties,
         # Formate la date au format attendu par datetime-local : "YYYY-MM-DDTHH:MM"
         # Empêche l'utilisateur de choisir une date dans le passé
         'now': timezone.now().strftime('%Y-%m-%dT%H:%M'),
+    })
+
+
+@login_required
+def appointment_confirm(request):
+    """Vue de synthèse et confirmation finale du rendez-vous.
+
+    Récupère les données stockées en session par appointment_new.
+    Si la session est vide (accès direct à l'URL), redirige vers le formulaire.
+    """
+    # Récupère les données stockées en session
+    appointment_data = request.session.get('appointment_data')
+
+    # Si pas de données en session — accès direct à l'URL sans passer par le formulaire
+    if not appointment_data:
+        messages.error(request, 'Veuillez d\'abord remplir le formulaire.')
+        return redirect('appointment_new')
+
+    # Récupère le spécialiste pour afficher ses informations dans la synthèse
+    specialist = get_object_or_404(Specialist, id=appointment_data['specialist_id'])
+
+    if request.method == 'POST':
+        # L'utilisateur a confirmé — on crée le rendez-vous en base
+        # Équivalent SQL : INSERT INTO appointments_appointment ...
+        Appointment.objects.create(  # pylint: disable=no-member
+            patient=request.user,
+            specialist=specialist,
+            date=appointment_data['date'],
+            notes=appointment_data['notes'],
+        )
+        # Supprime les données de session — elles ne sont plus nécessaires
+        del request.session['appointment_data']
+        messages.success(request, 'Rendez-vous confirmé avec succès !')
+        return redirect('appointment_list')
+
+    # strptime : convertit la chaîne "2026-03-11T12:45" en objet datetime
+    # strftime : reformate l'objet datetime en "11/03/2026 12:45"
+    date_formatee = datetime.strptime(
+        appointment_data['date'], '%Y-%m-%dT%H:%M'
+    ).strftime('%d/%m/%Y %H:%M')
+
+    # Affichage de la synthèse avec les données du rendez-vous
+    return render(request, 'appointments/confirm.html', {
+        'specialist': specialist,
+        # date_formatee : version lisible pour l'affichage
+        'date': date_formatee,
+        # notes|default:"—" dans le template gère le cas vide
+        'notes': appointment_data['notes'],
     })
 
 

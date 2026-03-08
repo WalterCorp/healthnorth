@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block title %}Confirmer le rendez-vous — Health North{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-md-6 offset-md-3">
+        <div class="card">
+            <div class="card-header">
+                <h3>Récapitulatif du rendez-vous</h3>
+            </div>
+            <div class="card-body">
+
+                <!-- Synthèse des informations saisies -->
+                <table class="table">
+                    <tr>
+                        <th>Spécialiste</th>
+                        <!-- specialist = objet Specialist passé depuis la vue -->
+                        <td>{{ specialist }}</td>
+                    </tr>
+                    <tr>
+                        <th>Spécialité</th>
+                        <!-- Accès à la spécialité via la relation FK -->
+                        <td>{{ specialist.specialty }}</td>
+                    </tr>
+                    <tr>
+                        <th>Date et heure</th>
+                        <td>{{ date }}</td>
+                    </tr>
+                    <tr>
+                        <th>Notes</th>
+                        <!-- Si notes vide, affiche un tiret -->
+                        <td>{% if notes %}{{ notes }}{% else %}—{% endif %}</td>
+                    </tr>
+                </table>
+
+                <!-- Formulaire de confirmation — méthode POST pour créer le RDV -->
+                <form method="post">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-success w-100 mt-2">
+                        Confirmer le rendez-vous
+                    </button>
+                </form>
+
+                <!-- Lien retour pour modifier le rendez-vous sans confirmer -->
+                <a href="/appointments/new/" class="btn btn-secondary w-100 mt-2">
+                    Modifier
+                </a>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

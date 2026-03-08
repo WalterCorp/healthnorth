@@ -8,6 +8,8 @@ urlpatterns = [
     path('', views.appointment_list, name='appointment_list'),
     # Prise d'un nouveau rendez-vous
     path('new/', views.appointment_new, name='appointment_new'),
+    # Page de synthèse avant confirmation finale du rendez-vous
+    path('confirm/', views.appointment_confirm, name='appointment_confirm'),
     # Annulation d'un rendez-vous — <int:appointment_id> = identifiant du RDV
     # Ex : /appointments/3/cancel/ annule le rendez-vous n°3
     path('<int:appointment_id>/cancel/', views.appointment_cancel, name='appointment_cancel'),
