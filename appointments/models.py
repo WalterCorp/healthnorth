@@ -12,7 +12,6 @@ class Specialty(models.Model):
     # Durée moyenne d'un rendez-vous pour cette spécialité
     duration_minutes = models.IntegerField(default=30)
 
-    # Métadonnées du modèle
     class Meta:
         """Options du modèle Specialty."""
         verbose_name = "Spécialité"
@@ -35,6 +34,11 @@ class Specialist(models.Model):
         Specialty, on_delete=models.SET_NULL, null=True
     )
     bio = models.TextField(blank=True)
+
+    class Meta:
+        """Options du modèle Specialist."""
+        verbose_name = "Spécialiste"
+        verbose_name_plural = "Spécialistes"
 
     def __str__(self) -> str:
         """Retourne le nom du spécialiste."""
@@ -67,6 +71,11 @@ class Appointment(models.Model):
     )
     # Notes médicales optionnelles
     notes = models.TextField(blank=True)
+
+    class Meta:
+        """Options du modèle Appointment."""
+        verbose_name = "Rendez-vous"
+        verbose_name_plural = "Rendez-vous"
 
     def __str__(self) -> str:
         """Retourne une représentation du rendez-vous."""

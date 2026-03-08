@@ -16,7 +16,7 @@ class SpecialistAdmin(admin.ModelAdmin):
     """Administration des médecins spécialistes."""
 
     list_display = ('user', 'specialty')
-
+    
 
 @admin.register(Appointment)
 class AppointmentAdmin(admin.ModelAdmin):
