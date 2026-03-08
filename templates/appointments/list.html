@@ -19,6 +19,7 @@
                     <tr>
                         <th>Date</th>
                         <th>Spécialiste</th>
+                        <th>Spécialité</th>
                         <th>Statut</th>
                         <th>Notes</th>
                         <!-- Colonne action pour le bouton d'annulation -->
@@ -32,6 +33,9 @@
                         <!-- Filtre date : formate la date en format français -->
                         <td>{{ appointment.date|date:"d/m/Y H:i" }}</td>
                         <td>{{ appointment.specialist }}</td>
+                        <!-- Accès à la spécialité via la relation specialist.specialty -->
+                        <!-- Django suit automatiquement la FK : appointment → specialist → specialty -->
+                        <td>{{ appointment.specialist.specialty }}</td>
                         <!-- get_status_display : affiche le label lisible -->
                         <!-- ex: "En attente" au lieu de "pending" -->
                         <td>{{ appointment.get_status_display }}</td>

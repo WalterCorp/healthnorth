@@ -33,10 +33,13 @@
                     <div class="mb-3">
                         <label class="form-label">Date et heure</label>
                         <!-- datetime-local : sélecteur date + heure natif HTML5 -->
+                        <!-- min="{{ now }}" : empêche de choisir une date passée -->
+                        <!-- now est injecté depuis la vue via le contexte -->
                         <input
                             type="datetime-local"
                             name="date"
                             class="form-control"
+                            min="{{ now }}"
                             required>
                     </div>
 

@@ -3,6 +3,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.utils import timezone
 from .models import Appointment, Specialist, Specialty
 
 
@@ -54,7 +55,10 @@ def appointment_new(request):
     # Affichage initial du formulaire avec les données disponibles
     return render(request, 'appointments/new.html', {
         'specialists': specialists,
-        'specialties': specialties
+        'specialties': specialties,
+        # Formate la date au format attendu par datetime-local : "YYYY-MM-DDTHH:MM"
+        # Empêche l'utilisateur de choisir une date dans le passé
+        'now': timezone.now().strftime('%Y-%m-%dT%H:%M'),
     })
 
 
