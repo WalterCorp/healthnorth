@@ -16,8 +16,6 @@ class RegisterForm(UserCreationForm):
     class Meta:
         """Options du formulaire."""
         model = User
-        # Champs affichés dans le formulaire d'inscription
-        # password1 = mot de passe, password2 = confirmation
         fields = [
             'username',
             'first_name',
@@ -29,3 +27,9 @@ class RegisterForm(UserCreationForm):
             'password1',
             'password2'
         ]
+        # Labels personnalisés en français pour nos champs
+        labels = {
+            'phone': 'Téléphone',
+            'address': 'Adresse',
+            'date_of_birth': 'Date de naissance',
+        }
