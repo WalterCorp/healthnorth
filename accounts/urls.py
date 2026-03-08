@@ -12,4 +12,6 @@ urlpatterns = [
     path('logout/', views.logout_view, name='logout'),
     # Modification du profil
     path('profile/', views.profile, name='profile'),
+    # Modification du mot de passe
+    path('password/', views.change_password, name='change_password'),
 ]

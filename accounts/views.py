@@ -1,10 +1,10 @@
 """Vues de l'application accounts — inscription, connexion, déconnexion."""
 
 from django.shortcuts import render, redirect
-from django.contrib.auth import login, logout
+from django.contrib.auth import login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm
 from django.contrib import messages
-from django.contrib.auth.forms import AuthenticationForm
 from .forms import RegisterForm, ProfileForm
 
 
@@ -72,3 +72,27 @@ def profile(request):
         # Pré-remplit le formulaire avec les données actuelles de l'utilisateur
         form = ProfileForm(instance=request.user)
     return render(request, 'accounts/profile.html', {'form': form})
+
+
+@login_required
+def change_password(request):
+    """Vue de modification du mot de passe utilisateur.
+
+    update_session_auth_hash est crucial ici — sans lui, Django déconnecte
+    automatiquement l'utilisateur après le changement de mot de passe
+    car la session devient invalide. Cette fonction met à jour la session
+    avec le nouveau hash du mot de passe.
+    """
+    if request.method == 'POST':
+        # PasswordChangeForm vérifie l'ancien mot de passe automatiquement
+        form = PasswordChangeForm(user=request.user, data=request.POST)
+        if form.is_valid():
+            form.save()
+            # Met à jour la session pour éviter la déconnexion automatique
+            update_session_auth_hash(request, form.user)
+            messages.success(request, 'Mot de passe modifié avec succès !')
+            return redirect('profile')
+    else:
+        # Formulaire vide pré-lié à l'utilisateur connecté
+        form = PasswordChangeForm(user=request.user)
+    return render(request, 'accounts/change_password.html', {'form': form})
