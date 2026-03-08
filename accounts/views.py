@@ -1,10 +1,11 @@
 """Vues de l'application accounts — inscription, connexion, déconnexion."""
 
 from django.shortcuts import render, redirect
-from django.contrib.auth import login, logout, authenticate
+from django.contrib.auth import login, logout
+from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth.forms import AuthenticationForm
-from .forms import RegisterForm
+from .forms import RegisterForm, ProfileForm
 
 
 def register(request):
@@ -53,3 +54,21 @@ def logout_view(request):
     messages.info(request, 'Vous avez été déconnecté.')
     # Redirige vers la page de connexion
     return redirect('login')
+
+
+@login_required
+def profile(request):
+    """Vue de modification du profil utilisateur."""
+    if request.method == 'POST':
+        # On passe instance=request.user pour modifier l'utilisateur existant
+        # Sans instance, Django créerait un nouvel utilisateur (INSERT)
+        # Avec instance, Django met à jour l'utilisateur existant (UPDATE)
+        form = ProfileForm(request.POST, instance=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Profil mis à jour avec succès !')
+            return redirect('profile')
+    else:
+        # Pré-remplit le formulaire avec les données actuelles de l'utilisateur
+        form = ProfileForm(instance=request.user)
+    return render(request, 'accounts/profile.html', {'form': form})

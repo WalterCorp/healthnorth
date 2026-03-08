@@ -19,6 +19,8 @@
                 {% if user.is_authenticated %}
                     <!-- Utilisateur connecté : affiche ses options -->
                     <a class="nav-link" href="/appointments/">Mes rendez-vous</a>
+                    <!-- Lien vers la page de modification du profil -->
+                    <a class="nav-link" href="/accounts/profile/">Mon profil</a>
                     <a class="nav-link" href="/accounts/logout/">Déconnexion</a>
                 {% else %}
                     <!-- Utilisateur non connecté : affiche connexion/inscription -->

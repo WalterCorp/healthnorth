@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block title %}Mon profil — Health North{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-md-6 offset-md-3">
+        <div class="card">
+            <div class="card-header">
+                <h3>Mon profil</h3>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    <!-- Protection CSRF obligatoire sur tout formulaire POST -->
+                    {% csrf_token %}
+                    <!-- Formulaire pré-rempli avec les données actuelles -->
+                    {{ form.as_p }}
+                    <button type="submit" class="btn btn-primary w-100 mt-3">
+                        Mettre à jour
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
