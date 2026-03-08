@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+<!-- Ce template hérite de base.html -->
+<!-- Il remplit uniquement les blocs définis dans base.html -->
+
+{% block title %}Accueil — Health North{% endblock %}
+
+{% block content %}
+<div class="row mt-5">
+    <div class="col-md-8 offset-md-2 text-center">
+        <h1>Bienvenue sur Health North</h1>
+        <p class="lead mt-3">
+            Plateforme de réservation de rendez-vous médicaux en ligne.
+        </p>
+        <!-- Affichage conditionnel selon l'état de connexion -->
+        {% if user.is_authenticated %}
+            <!-- Utilisateur connecté : accès direct aux rendez-vous -->
+            <a href="/appointments/" class="btn btn-primary mt-3">
+                Mes rendez-vous
+            </a>
+        {% else %}
+            <!-- Utilisateur non connecté : invitation à créer un compte -->
+            <a href="/accounts/register/" class="btn btn-primary mt-3">
+                Créer un compte
+            </a>
+            <a href="/accounts/login/" class="btn btn-outline-secondary mt-3 ms-2">
+                Se connecter
+            </a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

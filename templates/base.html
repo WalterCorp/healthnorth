@@ -3,21 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- block title : chaque page enfant définit son propre titre -->
     <title>{% block title %}Health North{% endblock %}</title>
-    <!-- Bootstrap CSS pour le style -->
+    <!-- Bootstrap via CDN : framework CSS pour le style -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
 
-    <!-- NAVBAR -->
+    <!-- NAVBAR : barre de navigation commune à toutes les pages -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
             <a class="navbar-brand" href="/">Health North</a>
             <div class="navbar-nav ms-auto">
+                <!-- Affichage conditionnel selon l'état de connexion -->
                 {% if user.is_authenticated %}
+                    <!-- Utilisateur connecté : affiche ses options -->
                     <a class="nav-link" href="/appointments/">Mes rendez-vous</a>
                     <a class="nav-link" href="/accounts/logout/">Déconnexion</a>
                 {% else %}
+                    <!-- Utilisateur non connecté : affiche connexion/inscription -->
                     <a class="nav-link" href="/accounts/login/">Connexion</a>
                     <a class="nav-link" href="/accounts/register/">Inscription</a>
                 {% endif %}
@@ -27,18 +31,22 @@
 
     <!-- CONTENU PRINCIPAL -->
     <div class="container mt-4">
-        <!-- Affichage des messages Django (succès, erreurs) -->
+
+        <!-- Affichage des messages Django (succès, erreurs, infos) -->
+        <!-- Ces messages sont générés par views.py via messages.success() etc. -->
         {% for message in messages %}
             <div class="alert alert-{{ message.tags }}">
                 {{ message }}
             </div>
         {% endfor %}
 
+        <!-- block content : zone remplie par chaque page enfant -->
         {% block content %}
         {% endblock %}
+
     </div>
 
-    <!-- Bootstrap JS -->
+    <!-- Bootstrap JS : nécessaire pour les composants interactifs -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

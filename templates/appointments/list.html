@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block title %}Mes rendez-vous — Health North{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-md-10 offset-md-1">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Mes rendez-vous</h2>
+            <a href="/appointments/new/" class="btn btn-primary">
+                Prendre un rendez-vous
+            </a>
+        </div>
+
+        <!-- Vérifie si le patient a des rendez-vous -->
+        {% if appointments %}
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Spécialiste</th>
+                        <th>Statut</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Boucle sur tous les rendez-vous du patient connecté -->
+                    {% for appointment in appointments %}
+                    <tr>
+                        <!-- Filtre date : formate la date en format français -->
+                        <td>{{ appointment.date|date:"d/m/Y H:i" }}</td>
+                        <td>{{ appointment.specialist }}</td>
+                        <!-- get_status_display : affiche le label lisible -->
+                        <!-- ex: "En attente" au lieu de "pending" -->
+                        <td>{{ appointment.get_status_display }}</td>
+                        <td>{{ appointment.notes }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <!-- Aucun rendez-vous : message informatif -->
+            <div class="alert alert-info">
+                Vous n'avez pas encore de rendez-vous.
+                <a href="/appointments/new/">Prendre un rendez-vous</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
