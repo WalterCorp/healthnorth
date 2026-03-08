@@ -21,6 +21,8 @@
                         <th>Spécialiste</th>
                         <th>Statut</th>
                         <th>Notes</th>
+                        <!-- Colonne action pour le bouton d'annulation -->
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -34,6 +36,18 @@
                         <!-- ex: "En attente" au lieu de "pending" -->
                         <td>{{ appointment.get_status_display }}</td>
                         <td>{{ appointment.notes }}</td>
+                        <td>
+                            <!-- Bouton annulation uniquement si le RDV n'est pas déjà annulé -->
+                            {% if appointment.status != 'cancelled' %}
+                                <a href="/appointments/{{ appointment.id }}/cancel/"
+                                   class="btn btn-sm btn-danger"
+                                   onclick="return confirm('Confirmer l\'annulation ?')">
+                                    Annuler
+                                </a>
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>

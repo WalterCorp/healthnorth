@@ -1,6 +1,6 @@
 """Vues de l'application appointments — gestion des rendez-vous."""
 
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from .models import Appointment, Specialist, Specialty
@@ -56,3 +56,25 @@ def appointment_new(request):
         'specialists': specialists,
         'specialties': specialties
     })
+
+
+@login_required
+def appointment_cancel(request, appointment_id):
+    """Vue d'annulation d'un rendez-vous.
+
+    get_object_or_404 : récupère le rendez-vous ou retourne une erreur 404
+    La vérification patient=request.user empêche un patient d'annuler
+    le rendez-vous d'un autre patient — sécurité importante.
+    """
+    # Récupère le rendez-vous — vérifie qu'il appartient bien au patient connecté
+    # Équivalent SQL : SELECT * FROM appointments WHERE id=X AND patient_id=Y
+    appointment = get_object_or_404(
+        Appointment,
+        id=appointment_id,
+        patient=request.user
+    )
+    # Met à jour le statut — Équivalent SQL : UPDATE appointments SET status='cancelled'
+    appointment.status = 'cancelled'
+    appointment.save()
+    messages.success(request, 'Rendez-vous annulé.')
+    return redirect('appointment_list')
