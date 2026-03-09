@@ -14,43 +14,29 @@
                     {% csrf_token %}
 
                     <!-- Sélection du spécialiste -->
-                    <!-- La liste vient de appointments/views.py -->
                     <div class="mb-3">
                         <label class="form-label">Spécialiste</label>
-                        <select name="specialist" class="form-select" required>
+                        <select name="specialist" id="specialist-select" class="form-select" required>
                             <option value="">-- Choisir un spécialiste --</option>
-                            <!-- Boucle sur les spécialistes disponibles -->
                             {% for specialist in specialists %}
                                 <option value="{{ specialist.id }}">
-                                    <!-- Affiche nom + spécialité du médecin -->
                                     {{ specialist }} — {{ specialist.specialty }}
                                 </option>
                             {% endfor %}
                         </select>
                     </div>
 
-                    <!-- Sélection du type d'examen -->
-                    <!-- La liste vient de appointments/views.py -->
+                    <!-- Sélection du type d'examen — mis à jour dynamiquement via JS -->
                     <div class="mb-3">
                         <label class="form-label">Type d'examen</label>
-                        <select name="exam_type" class="form-select" required>
-                            <option value="">-- Choisir un type d'examen --</option>
-                            <!-- Boucle sur les types d'examens disponibles -->
-                            <!-- Affiche nom + durée estimée -->
-                            {% for exam in exam_types %}
-                                <option value="{{ exam.id }}">
-                                    {{ exam.name }} — {{ exam.duration_minutes }} min
-                                </option>
-                            {% endfor %}
+                        <select name="exam_type" id="exam-type-select" class="form-select" required>
+                            <option value="">-- Choisir un spécialiste d'abord --</option>
                         </select>
                     </div>
 
                     <!-- Sélection de la date et heure -->
                     <div class="mb-3">
                         <label class="form-label">Date et heure</label>
-                        <!-- datetime-local : sélecteur date + heure natif HTML5 -->
-                        <!-- min="{{ now }}" : empêche de choisir une date passée -->
-                        <!-- now est injecté depuis la vue via le contexte -->
                         <input
                             type="datetime-local"
                             name="date"
@@ -76,4 +62,38 @@
         </div>
     </div>
 </div>
+
+<script>
+    // Écoute le changement de spécialiste
+    document.getElementById('specialist-select').addEventListener('change', function () {
+        const specialistId = this.value;
+        const examSelect = document.getElementById('exam-type-select');
+
+        // Réinitialise la liste des examens
+        examSelect.innerHTML = '<option value="">-- Choisir un type d\'examen --</option>';
+
+        // Si aucun spécialiste sélectionné, on s'arrête là
+        if (!specialistId) return;
+
+        // Appel à l'API Django pour récupérer les examens filtrés
+        // L'URL correspond à la route api/exam-types/<specialist_id>/
+        fetch(`/appointments/api/exam-types/${specialistId}/`)
+            .then(response => response.json())
+            .then(examTypes => {
+                if (examTypes.length === 0) {
+                    // Aucun examen disponible pour cette spécialité
+                    examSelect.innerHTML = '<option value="">-- Aucun examen disponible --</option>';
+                    return;
+                }
+                // Ajoute chaque examen comme option dans la liste
+                examTypes.forEach(exam => {
+                    const option = document.createElement('option');
+                    option.value = exam.id;
+                    option.textContent = `${exam.name} — ${exam.duration_minutes} min`;
+                    examSelect.appendChild(option);
+                });
+            });
+    });
+</script>
+
 {% endblock %}

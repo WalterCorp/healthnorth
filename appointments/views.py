@@ -1,5 +1,6 @@
 """Vues de l'application appointments — gestion des rendez-vous."""
 
+from django.http import JsonResponse
 from datetime import datetime
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -140,3 +141,19 @@ def appointment_cancel(request, appointment_id):
     appointment.save()
     messages.success(request, 'Rendez-vous annulé.')
     return redirect('appointment_list')
+
+@login_required
+def api_exam_types(request, specialist_id):
+    """Retourne les types d'examens liés à la spécialité du spécialiste en JSON.
+
+    Appelée en AJAX depuis le formulaire de prise de rendez-vous.
+    Permet de filtrer dynamiquement les examens selon le spécialiste choisi.
+    """
+    # Récupère le spécialiste — 404 si inexistant
+    specialist = get_object_or_404(Specialist, id=specialist_id)
+    # Filtre les examens par spécialité du spécialiste
+    exam_types = ExamType.objects.filter(  # pylint: disable=no-member
+        specialty=specialist.specialty
+    ).values('id', 'name', 'duration_minutes')
+    # Retourne la liste en JSON — list() convertit le QuerySet en liste sérialisable
+    return JsonResponse(list(exam_types), safe=False)
