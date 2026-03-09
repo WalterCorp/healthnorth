@@ -16,4 +16,13 @@ urlpatterns = [
     # API JSON — retourne les examens filtrés par spécialité du spécialiste
     # Appelée en JavaScript lors du changement de spécialiste dans le formulaire
     path('api/exam-types/<int:specialist_id>/', views.api_exam_types, name='api_exam_types'),
+    # API JSON — retourne les villes disponibles pour une région donnée
+    # Appelée en JavaScript lors du changement de région dans le formulaire
+    path('api/cities/<str:region>/', views.api_cities, name='api_cities'),
+    # API JSON — retourne les cliniques disponibles pour une ville donnée
+    # Appelée en JavaScript lors du changement de ville dans le formulaire
+    path('api/clinics/<str:city>/', views.api_clinics, name='api_clinics'),
+    # API JSON — retourne les spécialistes disponibles dans une clinique donnée
+    # Appelée en JavaScript lors du changement de clinique dans le formulaire
+    path('api/specialists/<int:clinic_id>/', views.api_specialists, name='api_specialists'),
 ]

@@ -6,7 +6,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.utils import timezone
-from .models import Appointment, Specialist, Specialty, ExamType
+from .models import Appointment, Specialist, Specialty, ExamType, Clinic
 
 
 # @login_required = décorateur de sécurité
@@ -21,7 +21,6 @@ def appointment_list(request):
     appointments = Appointment.objects.filter(  # pylint: disable=no-member
         patient=request.user
     ).order_by('-date')
-    # Envoie la liste au template
     return render(request, 'appointments/list.html', {
         'appointments': appointments
     })
@@ -35,36 +34,39 @@ def appointment_new(request):
     en session et on redirige vers la page de synthèse.
     La session est un stockage côté serveur lié à l'utilisateur connecté.
     """
-    specialists = Specialist.objects.all()  # pylint: disable=no-member
-    specialties = Specialty.objects.all()  # pylint: disable=no-member
-    # Récupère tous les types d'examens pour le formulaire
+    # Récupère les régions disponibles depuis les REGION_CHOICES du modèle Clinic
+    # dict.fromkeys() évite les doublons tout en gardant l'ordre
+    regions = Clinic.REGION_CHOICES  # pylint: disable=no-member
     exam_types = ExamType.objects.all()  # pylint: disable=no-member
 
     if request.method == 'POST':
-        # Récupère les données du formulaire
+        # Récupère toutes les données du formulaire
+        region = request.POST.get('region')
+        city = request.POST.get('city')
+        clinic_id = request.POST.get('clinic')
         specialist_id = request.POST.get('specialist')
         exam_type_id = request.POST.get('exam_type')
         date = request.POST.get('date')
         notes = request.POST.get('notes', '').strip()
 
         # Stocke les données en session pour les récupérer sur la page de synthèse
-        # La session évite de passer les données sensibles dans l'URL
         request.session['appointment_data'] = {
+            'region': region,
+            'city': city,
+            'clinic_id': clinic_id,
             'specialist_id': specialist_id,
             'exam_type_id': exam_type_id,
             'date': date,
             'notes': notes,
         }
-        # Redirige vers la page de synthèse au lieu de créer directement le RDV
         return redirect('appointment_confirm')
 
     return render(request, 'appointments/new.html', {
-        'specialists': specialists,
-        'specialties': specialties,
-        # Liste des types d'examens pour le formulaire
+        # Liste des régions pour le premier select du formulaire
+        'regions': regions,
+        # Liste des examens — mis à jour dynamiquement après choix du spécialiste
         'exam_types': exam_types,
         # Formate la date au format attendu par datetime-local : "YYYY-MM-DDTHH:MM"
-        # Empêche l'utilisateur de choisir une date dans le passé
         'now': timezone.now().strftime('%Y-%m-%dT%H:%M'),
     })
 
@@ -76,46 +78,41 @@ def appointment_confirm(request):
     Récupère les données stockées en session par appointment_new.
     Si la session est vide (accès direct à l'URL), redirige vers le formulaire.
     """
-    # Récupère les données stockées en session
     appointment_data = request.session.get('appointment_data')
 
-    # Si pas de données en session — accès direct à l'URL sans passer par le formulaire
     if not appointment_data:
         messages.error(request, 'Veuillez d\'abord remplir le formulaire.')
         return redirect('appointment_new')
 
-    # Récupère le spécialiste pour afficher ses informations dans la synthèse
+    # Récupère les objets liés pour afficher leurs informations dans la synthèse
     specialist = get_object_or_404(Specialist, id=appointment_data['specialist_id'])
-    # Récupère le type d'examen pour afficher ses informations dans la synthèse
     exam_type = get_object_or_404(ExamType, id=appointment_data['exam_type_id'])
+    clinic = get_object_or_404(Clinic, id=appointment_data['clinic_id'])
 
     if request.method == 'POST':
         # L'utilisateur a confirmé — on crée le rendez-vous en base
-        # Équivalent SQL : INSERT INTO appointments_appointment ...
         Appointment.objects.create(  # pylint: disable=no-member
             patient=request.user,
             specialist=specialist,
             exam_type=exam_type,
+            clinic=clinic,
             date=appointment_data['date'],
             notes=appointment_data['notes'],
         )
-        # Supprime les données de session — elles ne sont plus nécessaires
         del request.session['appointment_data']
         messages.success(request, 'Rendez-vous confirmé avec succès !')
         return redirect('appointment_list')
 
-    # strptime : convertit la chaîne "2026-03-11T12:45" en objet datetime
-    # strftime : reformate l'objet datetime en "11/03/2026 12:45"
+    # strptime : convertit "2026-03-11T12:45" en objet datetime
+    # strftime : reformate en "11/03/2026 12:45"
     date_formatee = datetime.strptime(
         appointment_data['date'], '%Y-%m-%dT%H:%M'
     ).strftime('%d/%m/%Y %H:%M')
 
-    # Affichage de la synthèse avec les données du rendez-vous
     return render(request, 'appointments/confirm.html', {
         'specialist': specialist,
-        # Type d'examen sélectionné
         'exam_type': exam_type,
-        # date_formatee : version lisible pour l'affichage
+        'clinic': clinic,
         'date': date_formatee,
         'notes': appointment_data['notes'],
     })
@@ -129,18 +126,16 @@ def appointment_cancel(request, appointment_id):
     La vérification patient=request.user empêche un patient d'annuler
     le rendez-vous d'un autre patient — sécurité importante.
     """
-    # Récupère le rendez-vous — vérifie qu'il appartient bien au patient connecté
-    # Équivalent SQL : SELECT * FROM appointments WHERE id=X AND patient_id=Y
     appointment = get_object_or_404(
         Appointment,
         id=appointment_id,
         patient=request.user
     )
-    # Met à jour le statut — Équivalent SQL : UPDATE appointments SET status='cancelled'
     appointment.status = 'cancelled'
     appointment.save()
     messages.success(request, 'Rendez-vous annulé.')
     return redirect('appointment_list')
+
 
 @login_required
 def api_exam_types(request, specialist_id):
@@ -149,11 +144,58 @@ def api_exam_types(request, specialist_id):
     Appelée en AJAX depuis le formulaire de prise de rendez-vous.
     Permet de filtrer dynamiquement les examens selon le spécialiste choisi.
     """
-    # Récupère le spécialiste — 404 si inexistant
     specialist = get_object_or_404(Specialist, id=specialist_id)
-    # Filtre les examens par spécialité du spécialiste
     exam_types = ExamType.objects.filter(  # pylint: disable=no-member
         specialty=specialist.specialty
     ).values('id', 'name', 'duration_minutes')
-    # Retourne la liste en JSON — list() convertit le QuerySet en liste sérialisable
     return JsonResponse(list(exam_types), safe=False)
+
+
+@login_required
+def api_cities(request, region):
+    """Retourne les villes disponibles pour une région donnée en JSON.
+
+    Appelée en AJAX lors du changement de région dans le formulaire.
+    distinct() évite les doublons si plusieurs cliniques sont dans la même ville.
+    """
+    # Filtre les cliniques par région et récupère les villes uniques
+    # values_list('city', flat=True) retourne une liste de chaînes au lieu d'objets
+    cities = Clinic.objects.filter(  # pylint: disable=no-member
+        region=region
+    ).values_list('city', flat=True).distinct().order_by('city')
+    return JsonResponse(list(cities), safe=False)
+
+
+@login_required
+def api_clinics(request, city):
+    """Retourne les cliniques disponibles pour une ville donnée en JSON.
+
+    Appelée en AJAX lors du changement de ville dans le formulaire.
+    """
+    clinics = Clinic.objects.filter(  # pylint: disable=no-member
+        city=city
+    ).values('id', 'name', 'address')
+    return JsonResponse(list(clinics), safe=False)
+
+
+@login_required
+def api_specialists(request, clinic_id):
+    """Retourne les spécialistes disponibles dans une clinique donnée en JSON.
+
+    Appelée en AJAX lors du changement de clinique dans le formulaire.
+    clinics__id = filtre via la relation ManyToMany Specialist → Clinic
+    """
+    specialists = Specialist.objects.filter(  # pylint: disable=no-member
+        clinics__id=clinic_id
+    ).values('id', 'user__first_name', 'user__last_name', 'specialty__name')
+    # Formate les données pour l'affichage dans le formulaire
+    result = [
+        {
+            'id': s['id'],
+            # Reconstruit "Dr. Nom" depuis les champs séparés
+            'name': f"Dr. {s['user__last_name']}",
+            'specialty': s['specialty__name'],
+        }
+        for s in specialists
+    ]
+    return JsonResponse(result, safe=False)

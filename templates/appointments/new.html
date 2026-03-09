@@ -13,28 +13,51 @@
                 <form method="post">
                     {% csrf_token %}
 
-                    <!-- Sélection du spécialiste -->
+                    <!-- ÉTAPE 1 : Sélection de la région -->
                     <div class="mb-3">
-                        <label class="form-label">Spécialiste</label>
-                        <select name="specialist" id="specialist-select" class="form-select" required>
-                            <option value="">-- Choisir un spécialiste --</option>
-                            {% for specialist in specialists %}
-                                <option value="{{ specialist.id }}">
-                                    {{ specialist }} — {{ specialist.specialty }}
-                                </option>
+                        <label class="form-label">Région</label>
+                        <select name="region" id="region-select" class="form-select" required>
+                            <option value="">-- Choisir une région --</option>
+                            <!-- regions = liste de tuples (valeur, label) depuis REGION_CHOICES -->
+                            {% for value, label in regions %}
+                                <option value="{{ value }}">{{ label }}</option>
                             {% endfor %}
                         </select>
                     </div>
 
-                    <!-- Sélection du type d'examen — mis à jour dynamiquement via JS -->
+                    <!-- ÉTAPE 2 : Sélection de la ville — mis à jour dynamiquement via JS -->
+                    <div class="mb-3">
+                        <label class="form-label">Ville</label>
+                        <select name="city" id="city-select" class="form-select" required disabled>
+                            <option value="">-- Choisir une région d'abord --</option>
+                        </select>
+                    </div>
+
+                    <!-- ÉTAPE 3 : Sélection de la clinique — mis à jour dynamiquement via JS -->
+                    <div class="mb-3">
+                        <label class="form-label">Clinique</label>
+                        <select name="clinic" id="clinic-select" class="form-select" required disabled>
+                            <option value="">-- Choisir une ville d'abord --</option>
+                        </select>
+                    </div>
+
+                    <!-- ÉTAPE 4 : Sélection du spécialiste — mis à jour dynamiquement via JS -->
+                    <div class="mb-3">
+                        <label class="form-label">Spécialiste</label>
+                        <select name="specialist" id="specialist-select" class="form-select" required disabled>
+                            <option value="">-- Choisir une clinique d'abord --</option>
+                        </select>
+                    </div>
+
+                    <!-- ÉTAPE 5 : Sélection du type d'examen — mis à jour dynamiquement via JS -->
                     <div class="mb-3">
                         <label class="form-label">Type d'examen</label>
-                        <select name="exam_type" id="exam-type-select" class="form-select" required>
+                        <select name="exam_type" id="exam-type-select" class="form-select" required disabled>
                             <option value="">-- Choisir un spécialiste d'abord --</option>
                         </select>
                     </div>
 
-                    <!-- Sélection de la date et heure -->
+                    <!-- ÉTAPE 6 : Sélection de la date et heure -->
                     <div class="mb-3">
                         <label class="form-label">Date et heure</label>
                         <input
@@ -64,34 +87,136 @@
 </div>
 
 <script>
-    // Écoute le changement de spécialiste
+    // --- ÉTAPE 1 → 2 : Région sélectionnée → charge les villes ---
+    document.getElementById('region-select').addEventListener('change', function () {
+        const region = this.value;
+        const citySelect = document.getElementById('city-select');
+        const clinicSelect = document.getElementById('clinic-select');
+        const specialistSelect = document.getElementById('specialist-select');
+        const examSelect = document.getElementById('exam-type-select');
+
+        // Réinitialise et désactive tous les selects suivants
+        citySelect.innerHTML = '<option value="">-- Choisir une ville --</option>';
+        clinicSelect.innerHTML = '<option value="">-- Choisir une ville d\'abord --</option>';
+        specialistSelect.innerHTML = '<option value="">-- Choisir une clinique d\'abord --</option>';
+        examSelect.innerHTML = '<option value="">-- Choisir un spécialiste d\'abord --</option>';
+        citySelect.disabled = true;
+        clinicSelect.disabled = true;
+        specialistSelect.disabled = true;
+        examSelect.disabled = true;
+
+        if (!region) return;
+
+        // Appel API pour récupérer les villes de la région
+        fetch(`/appointments/api/cities/${region}/`)
+            .then(response => response.json())
+            .then(cities => {
+                if (cities.length === 0) {
+                    citySelect.innerHTML = '<option value="">-- Aucune ville disponible --</option>';
+                    return;
+                }
+                cities.forEach(city => {
+                    const option = document.createElement('option');
+                    option.value = city;
+                    option.textContent = city;
+                    citySelect.appendChild(option);
+                });
+                // Active le select ville une fois les données chargées
+                citySelect.disabled = false;
+            });
+    });
+
+    // --- ÉTAPE 2 → 3 : Ville sélectionnée → charge les cliniques ---
+    document.getElementById('city-select').addEventListener('change', function () {
+        const city = this.value;
+        const clinicSelect = document.getElementById('clinic-select');
+        const specialistSelect = document.getElementById('specialist-select');
+        const examSelect = document.getElementById('exam-type-select');
+
+        clinicSelect.innerHTML = '<option value="">-- Choisir une clinique --</option>';
+        specialistSelect.innerHTML = '<option value="">-- Choisir une clinique d\'abord --</option>';
+        examSelect.innerHTML = '<option value="">-- Choisir un spécialiste d\'abord --</option>';
+        clinicSelect.disabled = true;
+        specialistSelect.disabled = true;
+        examSelect.disabled = true;
+
+        if (!city) return;
+
+        // Appel API pour récupérer les cliniques de la ville
+        fetch(`/appointments/api/clinics/${city}/`)
+            .then(response => response.json())
+            .then(clinics => {
+                if (clinics.length === 0) {
+                    clinicSelect.innerHTML = '<option value="">-- Aucune clinique disponible --</option>';
+                    return;
+                }
+                clinics.forEach(clinic => {
+                    const option = document.createElement('option');
+                    option.value = clinic.id;
+                    // Affiche le nom et l'adresse de la clinique
+                    option.textContent = `${clinic.name} — ${clinic.address}`;
+                    clinicSelect.appendChild(option);
+                });
+                clinicSelect.disabled = false;
+            });
+    });
+
+    // --- ÉTAPE 3 → 4 : Clinique sélectionnée → charge les spécialistes ---
+    document.getElementById('clinic-select').addEventListener('change', function () {
+        const clinicId = this.value;
+        const specialistSelect = document.getElementById('specialist-select');
+        const examSelect = document.getElementById('exam-type-select');
+
+        specialistSelect.innerHTML = '<option value="">-- Choisir un spécialiste --</option>';
+        examSelect.innerHTML = '<option value="">-- Choisir un spécialiste d\'abord --</option>';
+        specialistSelect.disabled = true;
+        examSelect.disabled = true;
+
+        if (!clinicId) return;
+
+        // Appel API pour récupérer les spécialistes de la clinique
+        fetch(`/appointments/api/specialists/${clinicId}/`)
+            .then(response => response.json())
+            .then(specialists => {
+                if (specialists.length === 0) {
+                    specialistSelect.innerHTML = '<option value="">-- Aucun spécialiste disponible --</option>';
+                    return;
+                }
+                specialists.forEach(specialist => {
+                    const option = document.createElement('option');
+                    option.value = specialist.id;
+                    option.textContent = `${specialist.name} — ${specialist.specialty}`;
+                    specialistSelect.appendChild(option);
+                });
+                specialistSelect.disabled = false;
+            });
+    });
+
+    // --- ÉTAPE 4 → 5 : Spécialiste sélectionné → charge les examens ---
     document.getElementById('specialist-select').addEventListener('change', function () {
         const specialistId = this.value;
         const examSelect = document.getElementById('exam-type-select');
 
-        // Réinitialise la liste des examens
         examSelect.innerHTML = '<option value="">-- Choisir un type d\'examen --</option>';
+        examSelect.disabled = true;
 
-        // Si aucun spécialiste sélectionné, on s'arrête là
         if (!specialistId) return;
 
-        // Appel à l'API Django pour récupérer les examens filtrés
-        // L'URL correspond à la route api/exam-types/<specialist_id>/
+        // Appel API pour récupérer les examens filtrés par spécialité
         fetch(`/appointments/api/exam-types/${specialistId}/`)
             .then(response => response.json())
             .then(examTypes => {
                 if (examTypes.length === 0) {
-                    // Aucun examen disponible pour cette spécialité
                     examSelect.innerHTML = '<option value="">-- Aucun examen disponible --</option>';
                     return;
                 }
-                // Ajoute chaque examen comme option dans la liste
                 examTypes.forEach(exam => {
                     const option = document.createElement('option');
                     option.value = exam.id;
                     option.textContent = `${exam.name} — ${exam.duration_minutes} min`;
                     examSelect.appendChild(option);
                 });
+                examSelect.disabled = false;
             });
     });
 </script>

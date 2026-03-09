@@ -20,6 +20,7 @@
                         <th>Date</th>
                         <th>Spécialiste</th>
                         <th>Spécialité</th>
+                        <th>Clinique</th>
                         <th>Type d'examen</th>
                         <th>Statut</th>
                         <th>Notes</th>
@@ -36,6 +37,8 @@
                         <td>{{ appointment.specialist }}</td>
                         <!-- Accès à la spécialité via la relation specialist.specialty -->
                         <td>{{ appointment.specialist.specialty }}</td>
+                        <!-- Accès à la clinique — affiche un tiret si non renseignée -->
+                        <td>{% if appointment.clinic %}{{ appointment.clinic.name }}{% else %}—{% endif %}</td>
                         <!-- Accès au type d'examen — affiche un tiret si non renseigné -->
                         <td>{% if appointment.exam_type %}{{ appointment.exam_type.name }}{% else %}—{% endif %}</td>
                         <!-- get_status_display : affiche le label lisible -->
