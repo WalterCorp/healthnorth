@@ -1,7 +1,7 @@
 """Configuration de l'administration pour l'application appointments."""
 
 from django.contrib import admin
-from .models import Specialty, Specialist, Appointment, ExamType
+from .models import Specialty, Specialist, Appointment, ExamType, Clinic
 
 
 @admin.register(Specialty)
@@ -43,6 +43,37 @@ class ExamTypeAdmin(admin.ModelAdmin):
         return obj.specialty
 
 
+@admin.register(Clinic)
+class ClinicAdmin(admin.ModelAdmin):
+    """Administration des cliniques et laboratoires Health North."""
+
+    # Colonnes affichées dans la liste des cliniques
+    list_display = ('get_name', 'get_region', 'get_department', 'get_city')
+    # Filtre latéral par région pour faciliter la navigation
+    list_filter = ('region',)
+
+    @admin.display(description='Nom')
+    def get_name(self, obj):
+        """Retourne le nom de la clinique."""
+        return obj.name
+
+    @admin.display(description='Région')
+    def get_region(self, obj):
+        """Retourne le label lisible de la région (ex: Île-de-France)."""
+        # get_region_display() utilise les REGION_CHOICES du modèle
+        return obj.get_region_display()
+
+    @admin.display(description='Département')
+    def get_department(self, obj):
+        """Retourne le département de la clinique."""
+        return obj.department
+
+    @admin.display(description='Ville')
+    def get_city(self, obj):
+        """Retourne la ville de la clinique."""
+        return obj.city
+
+
 @admin.register(Specialist)
 class SpecialistAdmin(admin.ModelAdmin):
     """Administration des médecins spécialistes."""
@@ -64,7 +95,9 @@ class SpecialistAdmin(admin.ModelAdmin):
 class AppointmentAdmin(admin.ModelAdmin):
     """Administration des rendez-vous médicaux."""
 
-    list_display = ('get_patient', 'get_specialist', 'get_exam_type', 'date', 'get_status')
+    # Colonnes affichées dans la liste des rendez-vous
+    list_display = ('get_patient', 'get_specialist', 'get_exam_type', 'get_clinic', 'date', 'get_status')
+    # Filtre latéral par statut
     list_filter = ('status',)
 
     @admin.display(description='Patient')
@@ -79,8 +112,13 @@ class AppointmentAdmin(admin.ModelAdmin):
 
     @admin.display(description="Type d'examen")
     def get_exam_type(self, obj):
-        """Retourne le type d'examen du rendez-vous."""
+        """Retourne le type d'examen — tiret si non renseigné."""
         return obj.exam_type if obj.exam_type else '—'
+
+    @admin.display(description='Clinique')
+    def get_clinic(self, obj):
+        """Retourne la clinique du rendez-vous — tiret si non renseignée."""
+        return obj.clinic if obj.clinic else '—'
 
     @admin.display(description='Statut')
     def get_status(self, obj):

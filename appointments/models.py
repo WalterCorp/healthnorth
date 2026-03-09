@@ -32,7 +32,6 @@ class ExamType(models.Model):
     # Description optionnelle de l'examen
     description = models.TextField(blank=True)
     # Spécialité médicale associée à cet examen
-    # SET_NULL : si la spécialité est supprimée, l'examen reste mais sans spécialité
     specialty = models.ForeignKey(
         Specialty, on_delete=models.SET_NULL, null=True, blank=True
     )
@@ -47,17 +46,62 @@ class ExamType(models.Model):
         return str(f"{self.name} ({self.duration_minutes} min)")
 
 
+# Clinique / laboratoire Health North
+class Clinic(models.Model):
+    """Clinique ou laboratoire Health North sur le territoire français."""
+
+    # Régions françaises disponibles
+    REGION_CHOICES = [
+        ('ile-de-france', 'Île-de-France'),
+        ('auvergne-rhone-alpes', 'Auvergne-Rhône-Alpes'),
+        ('nouvelle-aquitaine', 'Nouvelle-Aquitaine'),
+        ('occitanie', 'Occitanie'),
+        ('hauts-de-france', 'Hauts-de-France'),
+        ('provence-alpes-cote-azur', "Provence-Alpes-Côte d'Azur"),
+        ('grand-est', 'Grand Est'),
+        ('pays-de-la-loire', 'Pays de la Loire'),
+        ('normandie', 'Normandie'),
+        ('bretagne', 'Bretagne'),
+        ('bourgogne-franche-comte', 'Bourgogne-Franche-Comté'),
+        ('centre-val-de-loire', 'Centre-Val de Loire'),
+    ]
+
+    name = models.CharField(max_length=200)
+    # Région administrative française
+    region = models.CharField(max_length=100, choices=REGION_CHOICES)
+    # Département (ex: Paris, Rhône, Gironde)
+    department = models.CharField(max_length=100)
+    # Ville
+    city = models.CharField(max_length=100)
+    # Adresse complète
+    address = models.CharField(max_length=255)
+    # Téléphone
+    phone = models.CharField(max_length=20, blank=True)
+
+    class Meta:
+        """Options du modèle Clinic."""
+        verbose_name = "Clinique"
+        verbose_name_plural = "Cliniques"
+        # Tri par région puis par ville
+        ordering = ['region', 'city', 'name']
+
+    def __str__(self) -> str:
+        """Retourne le nom et la ville de la clinique."""
+        return str(f"{self.name} — {self.city}")
+
+
 # Médecin spécialiste
 class Specialist(models.Model):
     """Médecin spécialiste lié à un compte utilisateur."""
 
-    # Lien vers le compte utilisateur du spécialiste
-    # OneToOne = un spécialiste = un seul compte utilisateur
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    # Spécialité du médecin — SET_NULL si la spécialité est supprimée
     specialty = models.ForeignKey(
         Specialty, on_delete=models.SET_NULL, null=True
     )
+    # Clinique(s) où exerce le spécialiste
+    # ManyToMany : un spécialiste peut exercer dans plusieurs cliniques
+    # et une clinique peut avoir plusieurs spécialistes
+    clinics = models.ManyToManyField(Clinic, blank=True)
     bio = models.TextField(blank=True)
 
     class Meta:
@@ -74,31 +118,27 @@ class Specialist(models.Model):
 class Appointment(models.Model):
     """Rendez-vous médical entre un patient et un spécialiste."""
 
-    # Statuts possibles d'un rendez-vous
     STATUS_CHOICES = [
         ('pending', 'En attente'),
         ('confirmed', 'Confirmé'),
         ('cancelled', 'Annulé'),
     ]
 
-    # Patient qui prend le rendez-vous
-    # related_name permet d'accéder aux RDV d'un patient via patient.appointments.all()
     patient = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name='appointments'
     )
-    # Spécialiste concerné
     specialist = models.ForeignKey(Specialist, on_delete=models.CASCADE)
-    # Type d'examen choisi — SET_NULL si le type est supprimé
     exam_type = models.ForeignKey(
         ExamType, on_delete=models.SET_NULL, null=True, blank=True
     )
-    # Date et heure du rendez-vous
+    # Clinique choisie pour le rendez-vous — SET_NULL si la clinique est supprimée
+    clinic = models.ForeignKey(
+        Clinic, on_delete=models.SET_NULL, null=True, blank=True
+    )
     date = models.DateTimeField()
-    # Statut actuel du rendez-vous
     status = models.CharField(
         max_length=20, choices=STATUS_CHOICES, default='pending'
     )
-    # Notes médicales optionnelles
     notes = models.TextField(blank=True)
 
     class Meta:
