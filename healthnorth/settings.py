@@ -132,3 +132,8 @@ LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/accounts/login/'
 LOGIN_URL = '/accounts/login/'
 
+# Fichiers media (uploads utilisateurs — ordonnances, certificats, etc.)
+# MEDIA_URL : URL publique pour accéder aux fichiers uploadés
+MEDIA_URL = '/media/'
+# MEDIA_ROOT : dossier physique où Django stocke les fichiers uploadés
+MEDIA_ROOT = BASE_DIR / 'media'

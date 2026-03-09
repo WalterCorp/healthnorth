@@ -50,7 +50,6 @@ class ExamType(models.Model):
 class Clinic(models.Model):
     """Clinique ou laboratoire Health North sur le territoire français."""
 
-    # Régions françaises disponibles
     REGION_CHOICES = [
         ('ile-de-france', 'Île-de-France'),
         ('auvergne-rhone-alpes', 'Auvergne-Rhône-Alpes'),
@@ -67,22 +66,16 @@ class Clinic(models.Model):
     ]
 
     name = models.CharField(max_length=200)
-    # Région administrative française
     region = models.CharField(max_length=100, choices=REGION_CHOICES)
-    # Département (ex: Paris, Rhône, Gironde)
     department = models.CharField(max_length=100)
-    # Ville
     city = models.CharField(max_length=100)
-    # Adresse complète
     address = models.CharField(max_length=255)
-    # Téléphone
     phone = models.CharField(max_length=20, blank=True)
 
     class Meta:
         """Options du modèle Clinic."""
         verbose_name = "Clinique"
         verbose_name_plural = "Cliniques"
-        # Tri par région puis par ville
         ordering = ['region', 'city', 'name']
 
     def __str__(self) -> str:
@@ -98,9 +91,6 @@ class Specialist(models.Model):
     specialty = models.ForeignKey(
         Specialty, on_delete=models.SET_NULL, null=True
     )
-    # Clinique(s) où exerce le spécialiste
-    # ManyToMany : un spécialiste peut exercer dans plusieurs cliniques
-    # et une clinique peut avoir plusieurs spécialistes
     clinics = models.ManyToManyField(Clinic, blank=True)
     bio = models.TextField(blank=True)
 
@@ -131,7 +121,6 @@ class Appointment(models.Model):
     exam_type = models.ForeignKey(
         ExamType, on_delete=models.SET_NULL, null=True, blank=True
     )
-    # Clinique choisie pour le rendez-vous — SET_NULL si la clinique est supprimée
     clinic = models.ForeignKey(
         Clinic, on_delete=models.SET_NULL, null=True, blank=True
     )
@@ -149,3 +138,44 @@ class Appointment(models.Model):
     def __str__(self) -> str:
         """Retourne une représentation du rendez-vous."""
         return str(f"{self.patient} - {self.specialist} - {self.date}")
+
+
+# Document médical lié à un rendez-vous
+class Document(models.Model):
+    """Document médical déposé par le patient lors de la prise de rendez-vous.
+
+    Exemples : ordonnance, certificat médical, résultats d'analyse.
+    Les fichiers sont stockés dans le dossier media/documents/.
+    """
+
+    # Types de documents acceptés
+    DOCUMENT_TYPE_CHOICES = [
+        ('ordonnance', 'Ordonnance'),
+        ('certificat', 'Certificat médical'),
+        ('analyse', "Résultats d'analyse"),
+        ('autre', 'Autre'),
+    ]
+
+    # Rendez-vous auquel est lié le document
+    # CASCADE : si le RDV est supprimé, les documents le sont aussi
+    appointment = models.ForeignKey(
+        Appointment, on_delete=models.CASCADE, related_name='documents'
+    )
+    # Type de document pour faciliter le tri et l'affichage
+    document_type = models.CharField(
+        max_length=50, choices=DOCUMENT_TYPE_CHOICES, default='autre'
+    )
+    # Fichier uploadé — stocké dans media/documents/
+    # upload_to : sous-dossier dans MEDIA_ROOT
+    file = models.FileField(upload_to='documents/')
+    # Date d'upload — auto_now_add : rempli automatiquement à la création
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        """Options du modèle Document."""
+        verbose_name = "Document"
+        verbose_name_plural = "Documents"
+
+    def __str__(self) -> str:
+        """Retourne le type de document et le rendez-vous associé."""
+        return str(f"{self.get_document_type_display()} — {self.appointment}")  # pylint: disable=no-member
