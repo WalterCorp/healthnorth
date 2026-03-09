@@ -5,7 +5,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.utils import timezone
-from .models import Appointment, Specialist, Specialty
+from .models import Appointment, Specialist, Specialty, ExamType
 
 
 # @login_required = décorateur de sécurité
@@ -36,10 +36,13 @@ def appointment_new(request):
     """
     specialists = Specialist.objects.all()  # pylint: disable=no-member
     specialties = Specialty.objects.all()  # pylint: disable=no-member
+    # Récupère tous les types d'examens pour le formulaire
+    exam_types = ExamType.objects.all()  # pylint: disable=no-member
 
     if request.method == 'POST':
         # Récupère les données du formulaire
         specialist_id = request.POST.get('specialist')
+        exam_type_id = request.POST.get('exam_type')
         date = request.POST.get('date')
         notes = request.POST.get('notes', '').strip()
 
@@ -47,6 +50,7 @@ def appointment_new(request):
         # La session évite de passer les données sensibles dans l'URL
         request.session['appointment_data'] = {
             'specialist_id': specialist_id,
+            'exam_type_id': exam_type_id,
             'date': date,
             'notes': notes,
         }
@@ -56,6 +60,8 @@ def appointment_new(request):
     return render(request, 'appointments/new.html', {
         'specialists': specialists,
         'specialties': specialties,
+        # Liste des types d'examens pour le formulaire
+        'exam_types': exam_types,
         # Formate la date au format attendu par datetime-local : "YYYY-MM-DDTHH:MM"
         # Empêche l'utilisateur de choisir une date dans le passé
         'now': timezone.now().strftime('%Y-%m-%dT%H:%M'),
@@ -79,6 +85,8 @@ def appointment_confirm(request):
 
     # Récupère le spécialiste pour afficher ses informations dans la synthèse
     specialist = get_object_or_404(Specialist, id=appointment_data['specialist_id'])
+    # Récupère le type d'examen pour afficher ses informations dans la synthèse
+    exam_type = get_object_or_404(ExamType, id=appointment_data['exam_type_id'])
 
     if request.method == 'POST':
         # L'utilisateur a confirmé — on crée le rendez-vous en base
@@ -86,6 +94,7 @@ def appointment_confirm(request):
         Appointment.objects.create(  # pylint: disable=no-member
             patient=request.user,
             specialist=specialist,
+            exam_type=exam_type,
             date=appointment_data['date'],
             notes=appointment_data['notes'],
         )
@@ -103,9 +112,10 @@ def appointment_confirm(request):
     # Affichage de la synthèse avec les données du rendez-vous
     return render(request, 'appointments/confirm.html', {
         'specialist': specialist,
+        # Type d'examen sélectionné
+        'exam_type': exam_type,
         # date_formatee : version lisible pour l'affichage
         'date': date_formatee,
-        # notes|default:"—" dans le template gère le cas vide
         'notes': appointment_data['notes'],
     })
 

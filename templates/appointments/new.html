@@ -29,6 +29,22 @@
                         </select>
                     </div>
 
+                    <!-- Sélection du type d'examen -->
+                    <!-- La liste vient de appointments/views.py -->
+                    <div class="mb-3">
+                        <label class="form-label">Type d'examen</label>
+                        <select name="exam_type" class="form-select" required>
+                            <option value="">-- Choisir un type d'examen --</option>
+                            <!-- Boucle sur les types d'examens disponibles -->
+                            <!-- Affiche nom + durée estimée -->
+                            {% for exam in exam_types %}
+                                <option value="{{ exam.id }}">
+                                    {{ exam.name }} — {{ exam.duration_minutes }} min
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
                     <!-- Sélection de la date et heure -->
                     <div class="mb-3">
                         <label class="form-label">Date et heure</label>
@@ -49,12 +65,11 @@
                         <textarea
                             name="notes"
                             class="form-control"
-                            rows="3">
-                        </textarea>
+                            rows="3"></textarea>
                     </div>
 
                     <button type="submit" class="btn btn-primary w-100">
-                        Confirmer le rendez-vous
+                        Voir le récapitulatif
                     </button>
                 </form>
             </div>

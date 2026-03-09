@@ -22,6 +22,31 @@ class Specialty(models.Model):
         return str(self.name)
 
 
+# Type d'examen médical (ex: prise de sang, IRM, scanner)
+class ExamType(models.Model):
+    """Type d'examen médical disponible dans les cliniques Health North."""
+
+    name = models.CharField(max_length=200)
+    # Durée estimée de l'examen en minutes
+    duration_minutes = models.IntegerField(default=30)
+    # Description optionnelle de l'examen
+    description = models.TextField(blank=True)
+    # Spécialité médicale associée à cet examen
+    # SET_NULL : si la spécialité est supprimée, l'examen reste mais sans spécialité
+    specialty = models.ForeignKey(
+        Specialty, on_delete=models.SET_NULL, null=True, blank=True
+    )
+
+    class Meta:
+        """Options du modèle ExamType."""
+        verbose_name = "Type d'examen"
+        verbose_name_plural = "Types d'examens"
+
+    def __str__(self) -> str:
+        """Retourne le nom de l'examen et sa durée."""
+        return str(f"{self.name} ({self.duration_minutes} min)")
+
+
 # Médecin spécialiste
 class Specialist(models.Model):
     """Médecin spécialiste lié à un compte utilisateur."""
@@ -63,6 +88,10 @@ class Appointment(models.Model):
     )
     # Spécialiste concerné
     specialist = models.ForeignKey(Specialist, on_delete=models.CASCADE)
+    # Type d'examen choisi — SET_NULL si le type est supprimé
+    exam_type = models.ForeignKey(
+        ExamType, on_delete=models.SET_NULL, null=True, blank=True
+    )
     # Date et heure du rendez-vous
     date = models.DateTimeField()
     # Statut actuel du rendez-vous

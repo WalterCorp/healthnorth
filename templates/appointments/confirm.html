@@ -24,6 +24,16 @@
                         <td>{{ specialist.specialty }}</td>
                     </tr>
                     <tr>
+                        <th>Type d'examen</th>
+                        <!-- exam_type = objet ExamType passé depuis la vue -->
+                        <td>{{ exam_type.name }}</td>
+                    </tr>
+                    <tr>
+                        <th>Durée estimée</th>
+                        <!-- Durée de l'examen en minutes -->
+                        <td>{{ exam_type.duration_minutes }} min</td>
+                    </tr>
+                    <tr>
                         <th>Date et heure</th>
                         <td>{{ date }}</td>
                     </tr>

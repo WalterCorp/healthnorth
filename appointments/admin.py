@@ -1,7 +1,7 @@
 """Configuration de l'administration pour l'application appointments."""
 
 from django.contrib import admin
-from .models import Specialty, Specialist, Appointment
+from .models import Specialty, Specialist, Appointment, ExamType
 
 
 @admin.register(Specialty)
@@ -19,6 +19,28 @@ class SpecialtyAdmin(admin.ModelAdmin):
     def get_duration(self, obj):
         """Retourne la durée moyenne d'un rendez-vous."""
         return obj.duration_minutes
+
+
+@admin.register(ExamType)
+class ExamTypeAdmin(admin.ModelAdmin):
+    """Administration des types d'examens médicaux."""
+
+    list_display = ('get_name', 'get_duration', 'get_specialty')
+
+    @admin.display(description="Nom de l'examen")
+    def get_name(self, obj):
+        """Retourne le nom de l'examen."""
+        return obj.name
+
+    @admin.display(description='Durée (minutes)')
+    def get_duration(self, obj):
+        """Retourne la durée estimée de l'examen."""
+        return obj.duration_minutes
+
+    @admin.display(description='Spécialité associée')
+    def get_specialty(self, obj):
+        """Retourne la spécialité associée à l'examen."""
+        return obj.specialty
 
 
 @admin.register(Specialist)
@@ -42,7 +64,7 @@ class SpecialistAdmin(admin.ModelAdmin):
 class AppointmentAdmin(admin.ModelAdmin):
     """Administration des rendez-vous médicaux."""
 
-    list_display = ('get_patient', 'get_specialist', 'date', 'get_status')
+    list_display = ('get_patient', 'get_specialist', 'get_exam_type', 'date', 'get_status')
     list_filter = ('status',)
 
     @admin.display(description='Patient')
@@ -54,6 +76,11 @@ class AppointmentAdmin(admin.ModelAdmin):
     def get_specialist(self, obj):
         """Retourne le nom du spécialiste."""
         return obj.specialist
+
+    @admin.display(description="Type d'examen")
+    def get_exam_type(self, obj):
+        """Retourne le type d'examen du rendez-vous."""
+        return obj.exam_type if obj.exam_type else '—'
 
     @admin.display(description='Statut')
     def get_status(self, obj):
