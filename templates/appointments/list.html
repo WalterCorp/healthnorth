@@ -20,6 +20,7 @@
                         <th>Date</th>
                         <th>Spécialiste</th>
                         <th>Spécialité</th>
+                        <th>Type d'examen</th>
                         <th>Statut</th>
                         <th>Notes</th>
                         <!-- Colonne action pour le bouton d'annulation -->
@@ -34,12 +35,12 @@
                         <td>{{ appointment.date|date:"d/m/Y H:i" }}</td>
                         <td>{{ appointment.specialist }}</td>
                         <!-- Accès à la spécialité via la relation specialist.specialty -->
-                        <!-- Django suit automatiquement la FK : appointment → specialist → specialty -->
                         <td>{{ appointment.specialist.specialty }}</td>
+                        <!-- Accès au type d'examen — affiche un tiret si non renseigné -->
+                        <td>{% if appointment.exam_type %}{{ appointment.exam_type.name }}{% else %}—{% endif %}</td>
                         <!-- get_status_display : affiche le label lisible -->
-                        <!-- ex: "En attente" au lieu de "pending" -->
                         <td>{{ appointment.get_status_display }}</td>
-                        <td>{{ appointment.notes }}</td>
+                        <td>{% if appointment.notes %}{{ appointment.notes }}{% else %}—{% endif %}</td>
                         <td>
                             <!-- Bouton annulation uniquement si le RDV n'est pas déjà annulé -->
                             {% if appointment.status != 'cancelled' %}
