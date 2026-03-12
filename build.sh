@@ -13,6 +13,9 @@ python manage.py collectstatic --no-input
 # Applique les migrations de base de données
 python manage.py migrate
 
+# Charge les données initiales (spécialités, examens, cliniques)
+python manage.py loaddata appointments/fixtures/initial_data.json
+
 # Crée les comptes utilisateurs de test si ils n'existent pas déjà
 python manage.py shell -c "
 from django.contrib.auth import get_user_model
@@ -73,6 +76,3 @@ if not User.objects.filter(username='dr.leroy').exists():
     Specialist.objects.create(user=u, specialty=specialty)
     print('Dr. Leroy créé')
 "
-
-# Charge les données initiales (spécialités, examens, cliniques)
-python manage.py loaddata appointments/fixtures/initial_data.json
