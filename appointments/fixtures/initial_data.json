@@ -184,7 +184,7 @@
     "pk": 1,
     "fields": {
       "name": "Health North Paris Centre",
-      "region": "Île-de-France",
+      "region": "ile-de-france",
       "department": "Paris",
       "city": "Paris",
       "address": "1 Rue de Rivoli, 75001 Paris"
@@ -195,7 +195,7 @@
     "pk": 2,
     "fields": {
       "name": "Health North Lyon Sud",
-      "region": "Auvergne-Rhône-Alpes",
+      "region": "auvergne-rhone-alpes",
       "department": "Rhône",
       "city": "Lyon",
       "address": "10 Rue de la République, 69002 Lyon"
@@ -206,7 +206,7 @@
     "pk": 3,
     "fields": {
       "name": "Health North Marseille",
-      "region": "Provence-Alpes-Côte d'Azur",
+      "region": "provence-alpes-cote-azur",
       "department": "Bouches-du-Rhône",
       "city": "Marseille",
       "address": "5 La Canebière, 13001 Marseille"
@@ -217,7 +217,7 @@
     "pk": 4,
     "fields": {
       "name": "Health North Bordeaux",
-      "region": "Nouvelle-Aquitaine",
+      "region": "nouvelle-aquitainee",
       "department": "Gironde",
       "city": "Bordeaux",
       "address": "12 Cours de l'Intendance, 33000 Bordeaux"
@@ -228,7 +228,7 @@
     "pk": 5,
     "fields": {
       "name": "Health North Lille",
-      "region": "Hauts-de-France",
+      "region": "hauts-de-france",
       "department": "Nord",
       "city": "Lille",
       "address": "8 Rue Faidherbe, 59000 Lille"
@@ -239,7 +239,7 @@
     "pk": 6,
     "fields": {
       "name": "Health North Toulouse",
-      "region": "Occitanie",
+      "region": "occitanie",
       "department": "Haute-Garonne",
       "city": "Toulouse",
       "address": "3 Place du Capitole, 31000 Toulouse"
