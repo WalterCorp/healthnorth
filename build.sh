@@ -17,4 +17,4 @@ python manage.py migrate
 python manage.py loaddata appointments/fixtures/initial_data.json
 
 # Crée les utilisateurs de test et associe les cliniques
-python scripts/seed.py
+python manage.py seed
