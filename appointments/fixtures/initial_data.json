@@ -1,0 +1,254 @@
+[
+  {
+    "model": "appointments.specialty",
+    "pk": 1,
+    "fields": {
+      "name": "Cardiologie",
+      "duration_minutes": 30
+    }
+  },
+  {
+    "model": "appointments.specialty",
+    "pk": 2,
+    "fields": {
+      "name": "Radiologie",
+      "duration_minutes": 30
+    }
+  },
+  {
+    "model": "appointments.specialty",
+    "pk": 3,
+    "fields": {
+      "name": "Dermatologie",
+      "duration_minutes": 20
+    }
+  },
+  {
+    "model": "appointments.specialty",
+    "pk": 4,
+    "fields": {
+      "name": "Pédiatrie",
+      "duration_minutes": 25
+    }
+  },
+  {
+    "model": "appointments.specialty",
+    "pk": 5,
+    "fields": {
+      "name": "Ophtalmologie",
+      "duration_minutes": 20
+    }
+  },
+  {
+    "model": "appointments.examtype",
+    "pk": 1,
+    "fields": {
+      "name": "Prise de sang",
+      "duration_minutes": 15,
+      "description": "Analyse sanguine complète",
+      "specialty": 1
+    }
+  },
+  {
+    "model": "appointments.examtype",
+    "pk": 2,
+    "fields": {
+      "name": "IRM cardiaque",
+      "duration_minutes": 45,
+      "description": "Imagerie par résonance magnétique du cœur",
+      "specialty": 1
+    }
+  },
+  {
+    "model": "appointments.examtype",
+    "pk": 3,
+    "fields": {
+      "name": "Électrocardiogramme",
+      "duration_minutes": 20,
+      "description": "Enregistrement de l'activité électrique du cœur",
+      "specialty": 1
+    }
+  },
+  {
+    "model": "appointments.examtype",
+    "pk": 4,
+    "fields": {
+      "name": "Échocardiographie",
+      "duration_minutes": 30,
+      "description": "Échographie du cœur",
+      "specialty": 1
+    }
+  },
+  {
+    "model": "appointments.examtype",
+    "pk": 5,
+    "fields": {
+      "name": "Scanner thoracique",
+      "duration_minutes": 30,
+      "description": "Scanner de la cage thoracique",
+      "specialty": 2
+    }
+  },
+  {
+    "model": "appointments.examtype",
+    "pk": 6,
+    "fields": {
+      "name": "Radiographie pulmonaire",
+      "duration_minutes": 15,
+      "description": "Radio des poumons",
+      "specialty": 2
+    }
+  },
+  {
+    "model": "appointments.examtype",
+    "pk": 7,
+    "fields": {
+      "name": "Échographie abdominale",
+      "duration_minutes": 30,
+      "description": "Échographie de l'abdomen",
+      "specialty": 2
+    }
+  },
+  {
+    "model": "appointments.examtype",
+    "pk": 8,
+    "fields": {
+      "name": "Mammographie",
+      "duration_minutes": 25,
+      "description": "Radiographie des seins",
+      "specialty": 2
+    }
+  },
+  {
+    "model": "appointments.examtype",
+    "pk": 9,
+    "fields": {
+      "name": "Consultation dermatologique",
+      "duration_minutes": 20,
+      "description": "Examen de la peau",
+      "specialty": 3
+    }
+  },
+  {
+    "model": "appointments.examtype",
+    "pk": 10,
+    "fields": {
+      "name": "Biopsie cutanée",
+      "duration_minutes": 30,
+      "description": "Prélèvement d'un échantillon de peau",
+      "specialty": 3
+    }
+  },
+  {
+    "model": "appointments.examtype",
+    "pk": 11,
+    "fields": {
+      "name": "Consultation pédiatrique",
+      "duration_minutes": 25,
+      "description": "Consultation médicale pour enfants",
+      "specialty": 4
+    }
+  },
+  {
+    "model": "appointments.examtype",
+    "pk": 12,
+    "fields": {
+      "name": "Vaccinations",
+      "duration_minutes": 15,
+      "description": "Administration des vaccins",
+      "specialty": 4
+    }
+  },
+  {
+    "model": "appointments.examtype",
+    "pk": 13,
+    "fields": {
+      "name": "Fond d'œil",
+      "duration_minutes": 20,
+      "description": "Examen du fond de l'œil",
+      "specialty": 5
+    }
+  },
+  {
+    "model": "appointments.examtype",
+    "pk": 14,
+    "fields": {
+      "name": "Champ visuel",
+      "duration_minutes": 25,
+      "description": "Test de la vision périphérique",
+      "specialty": 5
+    }
+  },
+  {
+    "model": "appointments.clinic",
+    "pk": 1,
+    "fields": {
+      "name": "Health North Paris Centre",
+      "region": "Île-de-France",
+      "department": "Paris",
+      "city": "Paris",
+      "address": "1 Rue de Rivoli, 75001 Paris",
+      "specialists": [1, 2]
+    }
+  },
+  {
+    "model": "appointments.clinic",
+    "pk": 2,
+    "fields": {
+      "name": "Health North Lyon Sud",
+      "region": "Auvergne-Rhône-Alpes",
+      "department": "Rhône",
+      "city": "Lyon",
+      "address": "10 Rue de la République, 69002 Lyon",
+      "specialists": [1, 3]
+    }
+  },
+  {
+    "model": "appointments.clinic",
+    "pk": 3,
+    "fields": {
+      "name": "Health North Marseille",
+      "region": "Provence-Alpes-Côte d'Azur",
+      "department": "Bouches-du-Rhône",
+      "city": "Marseille",
+      "address": "5 La Canebière, 13001 Marseille",
+      "specialists": [2, 4]
+    }
+  },
+  {
+    "model": "appointments.clinic",
+    "pk": 4,
+    "fields": {
+      "name": "Health North Bordeaux",
+      "region": "Nouvelle-Aquitaine",
+      "department": "Gironde",
+      "city": "Bordeaux",
+      "address": "12 Cours de l'Intendance, 33000 Bordeaux",
+      "specialists": [3, 4]
+    }
+  },
+  {
+    "model": "appointments.clinic",
+    "pk": 5,
+    "fields": {
+      "name": "Health North Lille",
+      "region": "Hauts-de-France",
+      "department": "Nord",
+      "city": "Lille",
+      "address": "8 Rue Faidherbe, 59000 Lille",
+      "specialists": [1, 4]
+    }
+  },
+  {
+    "model": "appointments.clinic",
+    "pk": 6,
+    "fields": {
+      "name": "Health North Toulouse",
+      "region": "Occitanie",
+      "department": "Haute-Garonne",
+      "city": "Toulouse",
+      "address": "3 Place du Capitole, 31000 Toulouse",
+      "specialists": [2, 3]
+    }
+  }
+]
