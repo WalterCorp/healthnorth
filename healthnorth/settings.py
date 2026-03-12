@@ -15,6 +15,7 @@ DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
 # Hôtes autorisés — Render + localhost pour le dev
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.onrender.com']
+CSRF_TRUSTED_ORIGINS = ['https://healthnorth.onrender.com']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
