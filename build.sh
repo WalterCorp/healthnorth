@@ -44,6 +44,10 @@ if not User.objects.filter(username='dr.martin').exists():
     u.save()
     Specialist.objects.create(user=u, specialty=Specialty.objects.get(pk=1))
     print('Dr. Martin créé')
+elif not Specialist.objects.filter(user__username='dr.martin').exists():
+    u = User.objects.get(username='dr.martin')
+    Specialist.objects.create(user=u, specialty=Specialty.objects.get(pk=1))
+    print('Specialist Martin créé')
 
 # Dr. Dubois — Radiologue
 if not User.objects.filter(username='dr.dubois').exists():
@@ -72,17 +76,20 @@ if not User.objects.filter(username='dr.leroy').exists():
     Specialist.objects.create(user=u, specialty=Specialty.objects.get(pk=4))
     print('Dr. Leroy créé')
 
-# Association cliniques — spécialistes
-martin = Specialist.objects.get(user__username='dr.martin')
-dubois = Specialist.objects.get(user__username='dr.dubois')
-bernard = Specialist.objects.get(user__username='dr.bernard')
-leroy = Specialist.objects.get(user__username='dr.leroy')
+# Association cliniques — spécialistes (uniquement si tous les spécialistes existent)
+from appointments.models import Clinic, Specialist
+if Specialist.objects.filter(user__username__in=['dr.martin', 'dr.dubois', 'dr.bernard', 'dr.leroy']).count() == 4:
+    martin = Specialist.objects.get(user__username='dr.martin')
+    dubois = Specialist.objects.get(user__username='dr.dubois')
+    bernard = Specialist.objects.get(user__username='dr.bernard')
+    leroy = Specialist.objects.get(user__username='dr.leroy')
 
-Clinic.objects.get(pk=1).specialists.set([martin, dubois])
-Clinic.objects.get(pk=2).specialists.set([martin, bernard])
-Clinic.objects.get(pk=3).specialists.set([dubois, leroy])
-Clinic.objects.get(pk=4).specialists.set([bernard, leroy])
-Clinic.objects.get(pk=5).specialists.set([martin, leroy])
-Clinic.objects.get(pk=6).specialists.set([dubois, bernard])
-print('Cliniques associées aux spécialistes')
-"
+    Clinic.objects.get(pk=1).specialists.set([martin, dubois])
+    Clinic.objects.get(pk=2).specialists.set([martin, bernard])
+    Clinic.objects.get(pk=3).specialists.set([dubois, leroy])
+    Clinic.objects.get(pk=4).specialists.set([bernard, leroy])
+    Clinic.objects.get(pk=5).specialists.set([martin, leroy])
+    Clinic.objects.get(pk=6).specialists.set([dubois, bernard])
+    print('Cliniques associées aux spécialistes')
+else:
+    print('Spécialistes manquants — association ignorée')
