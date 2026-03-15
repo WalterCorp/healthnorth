@@ -1,0 +1,206 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 780" font-family="'Segoe UI', Arial, sans-serif">
+  <defs>
+    <marker id="arrow-assoc" markerWidth="10" markerHeight="10" refX="9" refY="4" orient="auto">
+      <polygon points="0,0 9,4 0,8" fill="#555"/>
+    </marker>
+    <filter id="shadow">
+      <feDropShadow dx="2" dy="2" stdDeviation="3" flood-color="#00000018"/>
+    </filter>
+  </defs>
+
+  <rect width="1100" height="780" fill="#f5f7fb"/>
+
+  <text x="550" y="36" text-anchor="middle" font-size="20" font-weight="700" fill="#1a2340">MCD — Health North</text>
+  <text x="550" y="54" text-anchor="middle" font-size="12" fill="#666">Modèle Conceptuel de Données</text>
+
+  <!-- ===== USER ===== -->
+  <g filter="url(#shadow)">
+    <rect x="30" y="80" width="210" height="290" rx="6" fill="white" stroke="#1a5fa8" stroke-width="2"/>
+    <rect x="30" y="80" width="210" height="50" rx="6" fill="#1a5fa8"/>
+    <rect x="30" y="110" width="210" height="20" fill="#1a5fa8"/>
+    <text x="135" y="103" text-anchor="middle" font-size="11" font-weight="700" fill="white">USER</text>
+    <text x="135" y="122" text-anchor="middle" font-size="10" fill="#b8d4f5">accounts_user</text>
+    <line x1="30" y1="130" x2="240" y2="130" stroke="#dde8f5" stroke-width="1"/>
+    <text x="44" y="148" font-size="11" fill="#222">🔑 id</text>
+    <text x="44" y="166" font-size="11" fill="#222">username</text>
+    <text x="44" y="184" font-size="11" fill="#222">password</text>
+    <text x="44" y="202" font-size="11" fill="#222">first_name</text>
+    <text x="44" y="220" font-size="11" fill="#222">last_name</text>
+    <text x="44" y="238" font-size="11" fill="#222">email</text>
+    <text x="44" y="256" font-size="11" fill="#222">phone</text>
+    <text x="44" y="274" font-size="11" fill="#222">address</text>
+    <text x="44" y="292" font-size="11" fill="#222">date_of_birth</text>
+    <text x="44" y="310" font-size="11" fill="#222">is_staff</text>
+    <text x="44" y="328" font-size="11" fill="#555">is_active</text>
+    <text x="44" y="346" font-size="11" fill="#555">date_joined</text>
+    <text x="44" y="364" font-size="11" fill="#555">is_superuser</text>
+  </g>
+
+  <!-- ===== SPECIALTY ===== -->
+  <g filter="url(#shadow)">
+    <rect x="420" y="80" width="210" height="130" rx="6" fill="white" stroke="#1a7a40" stroke-width="2"/>
+    <rect x="420" y="80" width="210" height="50" rx="6" fill="#1a7a40"/>
+    <rect x="420" y="110" width="210" height="20" fill="#1a7a40"/>
+    <text x="525" y="103" text-anchor="middle" font-size="11" font-weight="700" fill="white">SPECIALTY</text>
+    <text x="525" y="122" text-anchor="middle" font-size="10" fill="#a8e6c0">appointments_specialty</text>
+    <line x1="420" y1="130" x2="630" y2="130" stroke="#d5f0e0" stroke-width="1"/>
+    <text x="434" y="148" font-size="11" fill="#222">🔑 id</text>
+    <text x="434" y="166" font-size="11" fill="#222">name</text>
+    <text x="434" y="184" font-size="11" fill="#222">duration_minutes</text>
+    <text x="434" y="202" font-size="11" fill="#555">verbose_name</text>
+  </g>
+
+  <!-- ===== EXAM TYPE ===== -->
+  <g filter="url(#shadow)">
+    <rect x="420" y="260" width="210" height="150" rx="6" fill="white" stroke="#b94600" stroke-width="2"/>
+    <rect x="420" y="260" width="210" height="50" rx="6" fill="#b94600"/>
+    <rect x="420" y="290" width="210" height="20" fill="#b94600"/>
+    <text x="525" y="283" text-anchor="middle" font-size="11" font-weight="700" fill="white">EXAM TYPE</text>
+    <text x="525" y="302" text-anchor="middle" font-size="10" fill="#ffd4b0">appointments_examtype</text>
+    <line x1="420" y1="310" x2="630" y2="310" stroke="#fde8d5" stroke-width="1"/>
+    <text x="434" y="328" font-size="11" fill="#222">🔑 id</text>
+    <text x="434" y="346" font-size="11" fill="#222">name</text>
+    <text x="434" y="364" font-size="11" fill="#222">duration_minutes</text>
+    <text x="434" y="382" font-size="11" fill="#222">description</text>
+    <text x="434" y="400" font-size="11" fill="#555">🔗 specialty_id (FK)</text>
+  </g>
+
+  <!-- ===== CLINIC ===== -->
+  <g filter="url(#shadow)">
+    <rect x="420" y="460" width="210" height="220" rx="6" fill="white" stroke="#5b2c6f" stroke-width="2"/>
+    <rect x="420" y="460" width="210" height="50" rx="6" fill="#5b2c6f"/>
+    <rect x="420" y="490" width="210" height="20" fill="#5b2c6f"/>
+    <text x="525" y="483" text-anchor="middle" font-size="11" font-weight="700" fill="white">CLINIC</text>
+    <text x="525" y="502" text-anchor="middle" font-size="10" fill="#d7bde2">appointments_clinic</text>
+    <line x1="420" y1="510" x2="630" y2="510" stroke="#ead5f0" stroke-width="1"/>
+    <text x="434" y="528" font-size="11" fill="#222">🔑 id</text>
+    <text x="434" y="546" font-size="11" fill="#222">name</text>
+    <text x="434" y="564" font-size="11" fill="#222">region (choices)</text>
+    <text x="434" y="582" font-size="11" fill="#222">department</text>
+    <text x="434" y="600" font-size="11" fill="#222">city</text>
+    <text x="434" y="618" font-size="11" fill="#222">address</text>
+    <text x="434" y="636" font-size="11" fill="#222">phone</text>
+    <text x="434" y="654" font-size="11" fill="#555">ordering: region, city</text>
+    <text x="434" y="672" font-size="11" fill="#555">verbose_name</text>
+  </g>
+
+  <!-- ===== SPECIALIST ===== -->
+  <g filter="url(#shadow)">
+    <rect x="770" y="80" width="260" height="185" rx="6" fill="white" stroke="#7b241c" stroke-width="2"/>
+    <rect x="770" y="80" width="260" height="50" rx="6" fill="#7b241c"/>
+    <rect x="770" y="110" width="260" height="20" fill="#7b241c"/>
+    <text x="900" y="103" text-anchor="middle" font-size="11" font-weight="700" fill="white">SPECIALIST</text>
+    <text x="900" y="122" text-anchor="middle" font-size="10" fill="#f1948a">appointments_specialist</text>
+    <line x1="770" y1="130" x2="1030" y2="130" stroke="#fadbd8" stroke-width="1"/>
+    <text x="784" y="148" font-size="11" fill="#222">🔑 id</text>
+    <text x="784" y="166" font-size="11" fill="#222">bio</text>
+    <text x="784" y="184" font-size="11" fill="#555">🔗 user_id (FK OneToOne)</text>
+    <text x="784" y="202" font-size="11" fill="#555">🔗 specialty_id (FK)</text>
+    <text x="784" y="220" font-size="11" fill="#555">↔ clinics (M2M)</text>
+    <text x="784" y="250" font-size="11" fill="#777">verbose_name</text>
+  </g>
+
+  <!-- ===== APPOINTMENT ===== -->
+  <g filter="url(#shadow)">
+    <rect x="770" y="315" width="260" height="240" rx="6" fill="white" stroke="#1a2340" stroke-width="2"/>
+    <rect x="770" y="315" width="260" height="50" rx="6" fill="#1a2340"/>
+    <rect x="770" y="345" width="260" height="20" fill="#1a2340"/>
+    <text x="900" y="338" text-anchor="middle" font-size="11" font-weight="700" fill="white">APPOINTMENT</text>
+    <text x="900" y="357" text-anchor="middle" font-size="10" fill="#8fa8cc">appointments_appointment</text>
+    <line x1="770" y1="365" x2="1030" y2="365" stroke="#d5dce8" stroke-width="1"/>
+    <text x="784" y="383" font-size="11" fill="#222">🔑 id</text>
+    <text x="784" y="401" font-size="11" fill="#222">date (DateTimeField)</text>
+    <text x="784" y="419" font-size="11" fill="#222">status (choices)</text>
+    <text x="784" y="437" font-size="11" fill="#222">notes</text>
+    <text x="784" y="455" font-size="11" fill="#555">🔗 patient_id (FK → User)</text>
+    <text x="784" y="473" font-size="11" fill="#555">🔗 specialist_id (FK)</text>
+    <text x="784" y="491" font-size="11" fill="#555">🔗 exam_type_id (FK, null)</text>
+    <text x="784" y="509" font-size="11" fill="#555">🔗 clinic_id (FK, null)</text>
+    <text x="784" y="542" font-size="11" fill="#777">verbose_name</text>
+  </g>
+
+  <!-- ===== DOCUMENT ===== -->
+  <g filter="url(#shadow)">
+    <rect x="770" y="606" width="260" height="155" rx="6" fill="white" stroke="#0b5345" stroke-width="2"/>
+    <rect x="770" y="606" width="260" height="50" rx="6" fill="#0b5345"/>
+    <rect x="770" y="636" width="260" height="20" fill="#0b5345"/>
+    <text x="900" y="629" text-anchor="middle" font-size="11" font-weight="700" fill="white">DOCUMENT</text>
+    <text x="900" y="648" text-anchor="middle" font-size="10" fill="#76d7c4">appointments_document</text>
+    <line x1="770" y1="656" x2="1030" y2="656" stroke="#d0ece8" stroke-width="1"/>
+    <text x="784" y="674" font-size="11" fill="#222">🔑 id</text>
+    <text x="784" y="692" font-size="11" fill="#222">file (FileField)</text>
+    <text x="784" y="710" font-size="11" fill="#222">document_type (choices)</text>
+    <text x="784" y="728" font-size="11" fill="#222">uploaded_at (auto)</text>
+    <text x="784" y="746" font-size="11" fill="#555">🔗 appointment_id (FK)</text>
+    <text x="784" y="752" font-size="11" fill="#777">verbose_name</text>
+  </g>
+
+  <!-- ===== TABLE M2M ===== -->
+  <g filter="url(#shadow)">
+    <rect x="420" y="706" width="210" height="55" rx="6" fill="white" stroke="#5b2c6f" stroke-width="1.5" stroke-dasharray="6,3"/>
+    <text x="525" y="729" text-anchor="middle" font-size="11" font-weight="700" fill="#5b2c6f">specialist_clinics</text>
+    <text x="525" y="748" text-anchor="middle" font-size="10" fill="#666">specialist_id · clinic_id</text>
+  </g>
+
+  <!-- ===== RELATIONS ===== -->
+  <line x1="240" y1="155" x2="770" y2="160" stroke="#7b241c" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <text x="480" y="148" font-size="10" fill="#7b241c" text-anchor="middle">1,1</text>
+  <text x="750" y="148" font-size="10" fill="#7b241c" text-anchor="end">0,1</text>
+  <text x="500" y="170" font-size="10" fill="#7b241c" text-anchor="middle" font-style="italic">est un</text>
+
+  <line x1="240" y1="280" x2="770" y2="430" stroke="#1a2340" stroke-width="1.5" stroke-dasharray="5,3"/>
+  <text x="360" y="310" font-size="10" fill="#1a2340">1,1</text>
+  <text x="748" y="425" font-size="10" fill="#1a2340" text-anchor="end">0,n</text>
+  <text x="510" y="368" font-size="10" fill="#1a2340" font-style="italic">prend (patient)</text>
+
+  <line x1="525" y1="210" x2="525" y2="260" stroke="#b94600" stroke-width="1.5" marker-end="url(#arrow-assoc)"/>
+  <text x="536" y="228" font-size="10" fill="#b94600">1,1</text>
+  <text x="536" y="255" font-size="10" fill="#b94600">0,n</text>
+
+  <line x1="630" y1="145" x2="770" y2="175" stroke="#1a7a40" stroke-width="1.5" marker-end="url(#arrow-assoc)"/>
+  <text x="640" y="140" font-size="10" fill="#1a7a40">1,1</text>
+  <text x="750" y="190" font-size="10" fill="#1a7a40" text-anchor="end">0,n</text>
+  <text x="700" y="155" font-size="10" fill="#1a7a40" font-style="italic">spécialisé en</text>
+
+  <line x1="900" y1="265" x2="900" y2="315" stroke="#1a2340" stroke-width="1.5" marker-end="url(#arrow-assoc)"/>
+  <text x="910" y="283" font-size="10" fill="#1a2340">1,1</text>
+  <text x="910" y="309" font-size="10" fill="#1a2340">0,n</text>
+  <text x="920" y="295" font-size="10" fill="#1a2340" font-style="italic">assure</text>
+
+  <line x1="630" y1="365" x2="770" y2="455" stroke="#b94600" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arrow-assoc)"/>
+  <text x="636" y="358" font-size="10" fill="#b94600">0,1</text>
+  <text x="748" y="450" font-size="10" fill="#b94600" text-anchor="end">0,n</text>
+
+  <line x1="630" y1="575" x2="770" y2="510" stroke="#5b2c6f" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arrow-assoc)"/>
+  <text x="636" y="572" font-size="10" fill="#5b2c6f">0,1</text>
+  <text x="748" y="505" font-size="10" fill="#5b2c6f" text-anchor="end">0,n</text>
+
+  <line x1="900" y1="555" x2="900" y2="606" stroke="#0b5345" stroke-width="1.5" marker-end="url(#arrow-assoc)"/>
+  <text x="910" y="572" font-size="10" fill="#0b5345">1,1</text>
+  <text x="910" y="600" font-size="10" fill="#0b5345">0,n</text>
+  <text x="920" y="584" font-size="10" fill="#0b5345" font-style="italic">contient</text>
+
+  <line x1="770" y1="230" x2="640" y2="615" stroke="#5b2c6f" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <line x1="525" y1="680" x2="525" y2="706" stroke="#5b2c6f" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <text x="660" y="400" font-size="10" fill="#5b2c6f" font-style="italic">exerce dans</text>
+  <text x="644" y="625" font-size="10" fill="#5b2c6f">0,n</text>
+  <text x="752" y="242" font-size="10" fill="#5b2c6f" text-anchor="end">0,n</text>
+
+  <!-- LÉGENDE -->
+  <rect x="30" y="660" width="360" height="100" rx="6" fill="white" stroke="#ddd" stroke-width="1" filter="url(#shadow)"/>
+  <text x="210" y="680" text-anchor="middle" font-size="12" font-weight="700" fill="#222">Légende</text>
+  <rect x="44" y="690" width="16" height="10" rx="2" fill="#1a5fa8"/>
+  <text x="66" y="700" font-size="11" fill="#333">Entité utilisateurs (accounts)</text>
+  <rect x="44" y="708" width="16" height="10" rx="2" fill="#1a7a40"/>
+  <text x="66" y="718" font-size="11" fill="#333">Entité référentielle</text>
+  <rect x="44" y="726" width="16" height="10" rx="2" fill="#7b241c"/>
+  <text x="66" y="736" font-size="11" fill="#333">Entité spécialiste</text>
+  <rect x="44" y="744" width="16" height="10" rx="2" fill="#1a2340"/>
+  <text x="66" y="754" font-size="11" fill="#333">Rendez-vous / Document</text>
+  <line x1="200" y1="695" x2="230" y2="695" stroke="#555" stroke-width="1.5" stroke-dasharray="5,3"/>
+  <text x="236" y="699" font-size="11" fill="#333">Relation optionnelle</text>
+  <line x1="200" y1="713" x2="230" y2="713" stroke="#555" stroke-width="1.5"/>
+  <text x="236" y="717" font-size="11" fill="#333">Relation obligatoire</text>
+  <text x="200" y="735" font-size="11" fill="#555">🔑 Clé primaire</text>
+  <text x="200" y="753" font-size="11" fill="#555">🔗 Clé étrangère (FK)</text>
+</svg>

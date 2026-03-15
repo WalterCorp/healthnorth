@@ -1,0 +1,264 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1300 920" font-family="'Segoe UI', Arial, sans-serif">
+  <defs>
+    <marker id="arrow-inherit" markerWidth="14" markerHeight="14" refX="12" refY="6" orient="auto">
+      <polygon points="0,0 12,6 0,12" fill="white" stroke="#1a5fa8" stroke-width="1.5"/>
+    </marker>
+    <marker id="arrow-assoc" markerWidth="10" markerHeight="10" refX="9" refY="4" orient="auto">
+      <polygon points="0,0 9,4 0,8" fill="#444"/>
+    </marker>
+    <filter id="shadow">
+      <feDropShadow dx="2" dy="2" stdDeviation="3" flood-color="#00000018"/>
+    </filter>
+  </defs>
+
+  <rect width="1300" height="920" fill="#f5f7fb"/>
+
+  <text x="650" y="36" text-anchor="middle" font-size="20" font-weight="700" fill="#1a2340">Diagramme de Classes — Health North</text>
+  <text x="650" y="54" text-anchor="middle" font-size="11" fill="#666">Django / Python — Applications accounts &amp; appointments</text>
+
+  <!-- ===== AbstractUser (Django) ===== -->
+  <g filter="url(#shadow)">
+    <rect x="30" y="80" width="260" height="150" rx="6" fill="#f0f0f0" stroke="#999" stroke-width="1.5" stroke-dasharray="6,3"/>
+    <!-- En-tête gris foncé avec texte blanc lisible -->
+    <rect x="30" y="80" width="260" height="50" rx="6" fill="#555"/>
+    <rect x="30" y="110" width="260" height="20" fill="#555"/>
+    <text x="160" y="100" text-anchor="middle" font-size="10" fill="#ddd" font-style="italic">«abstract»</text>
+    <text x="160" y="120" text-anchor="middle" font-size="13" font-weight="700" fill="white">AbstractUser</text>
+    <line x1="30" y1="130" x2="290" y2="130" stroke="#ccc" stroke-width="1"/>
+    <text x="44" y="148" font-size="10" fill="#333">+ username: str</text>
+    <text x="44" y="163" font-size="10" fill="#333">+ email: str</text>
+    <text x="44" y="178" font-size="10" fill="#333">+ first_name: str</text>
+    <text x="44" y="193" font-size="10" fill="#333">+ last_name: str</text>
+    <text x="44" y="208" font-size="10" fill="#333">+ password: str</text>
+    <text x="44" y="222" font-size="10" fill="#777">Django built-in</text>
+  </g>
+
+  <!-- ===== USER ===== -->
+  <g filter="url(#shadow)">
+    <rect x="30" y="305" width="260" height="250" rx="6" fill="white" stroke="#1a5fa8" stroke-width="2"/>
+    <rect x="30" y="305" width="260" height="50" rx="6" fill="#1a5fa8"/>
+    <rect x="30" y="335" width="260" height="20" fill="#1a5fa8"/>
+    <text x="160" y="328" text-anchor="middle" font-size="10" fill="#b8d4f5">accounts</text>
+    <text x="160" y="348" text-anchor="middle" font-size="13" font-weight="700" fill="white">User</text>
+    <line x1="30" y1="355" x2="290" y2="355" stroke="#dde8f5" stroke-width="1"/>
+    <text x="44" y="373" font-size="10" fill="#222">+ phone: CharField(20)</text>
+    <text x="44" y="388" font-size="10" fill="#222">+ address: TextField</text>
+    <text x="44" y="403" font-size="10" fill="#222">+ date_of_birth: DateField</text>
+    <line x1="30" y1="413" x2="290" y2="413" stroke="#dde8f5" stroke-width="1"/>
+    <text x="44" y="430" font-size="10" fill="#444" font-style="italic">+ __str__(): str</text>
+    <line x1="30" y1="440" x2="290" y2="440" stroke="#dde8f5" stroke-width="1"/>
+    <text x="44" y="457" font-size="10" fill="#666">Forms:</text>
+    <text x="44" y="471" font-size="10" fill="#666">  RegisterForm(UserCreationForm)</text>
+    <text x="44" y="485" font-size="10" fill="#666">  ProfileForm(UserChangeForm)</text>
+    <text x="44" y="499" font-size="10" fill="#666">  PasswordChangeForm (built-in)</text>
+    <text x="44" y="513" font-size="10" fill="#666">  AuthenticationForm (built-in)</text>
+    <text x="44" y="545" font-size="10" fill="#888">Meta: AUTH_USER_MODEL</text>
+  </g>
+
+  <!-- ===== SPECIALTY ===== -->
+  <g filter="url(#shadow)">
+    <rect x="390" y="80" width="240" height="165" rx="6" fill="white" stroke="#1a7a40" stroke-width="2"/>
+    <rect x="390" y="80" width="240" height="50" rx="6" fill="#1a7a40"/>
+    <rect x="390" y="110" width="240" height="20" fill="#1a7a40"/>
+    <text x="510" y="100" text-anchor="middle" font-size="10" fill="#a8e6c0">appointments</text>
+    <text x="510" y="120" text-anchor="middle" font-size="13" font-weight="700" fill="white">Specialty</text>
+    <line x1="390" y1="130" x2="630" y2="130" stroke="#d5f0e0" stroke-width="1"/>
+    <text x="404" y="148" font-size="10" fill="#222">+ id: BigAutoField (PK)</text>
+    <text x="404" y="163" font-size="10" fill="#222">+ name: CharField(100)</text>
+    <text x="404" y="178" font-size="10" fill="#222">+ duration_minutes: IntegerField</text>
+    <line x1="390" y1="188" x2="630" y2="188" stroke="#d5f0e0" stroke-width="1"/>
+    <text x="404" y="204" font-size="10" fill="#444" font-style="italic">+ __str__(): str</text>
+    <text x="404" y="219" font-size="10" fill="#777">Meta: verbose_name</text>
+    <text x="404" y="234" font-size="10" fill="#777">      verbose_name_plural</text>
+  </g>
+
+  <!-- ===== EXAMTYPE ===== -->
+  <g filter="url(#shadow)">
+    <rect x="390" y="315" width="240" height="215" rx="6" fill="white" stroke="#b94600" stroke-width="2"/>
+    <rect x="390" y="315" width="240" height="50" rx="6" fill="#b94600"/>
+    <rect x="390" y="345" width="240" height="20" fill="#b94600"/>
+    <text x="510" y="335" text-anchor="middle" font-size="10" fill="#ffd4b0">appointments</text>
+    <text x="510" y="355" text-anchor="middle" font-size="13" font-weight="700" fill="white">ExamType</text>
+    <line x1="390" y1="365" x2="630" y2="365" stroke="#fde8d5" stroke-width="1"/>
+    <text x="404" y="383" font-size="10" fill="#222">+ id: BigAutoField (PK)</text>
+    <text x="404" y="398" font-size="10" fill="#222">+ name: CharField(200)</text>
+    <text x="404" y="413" font-size="10" fill="#222">+ duration_minutes: IntegerField</text>
+    <text x="404" y="428" font-size="10" fill="#222">+ description: TextField</text>
+    <text x="404" y="443" font-size="10" fill="#555">+ specialty: FK → Specialty</text>
+    <text x="404" y="456" font-size="10" fill="#555">  (SET_NULL, null=True)</text>
+    <line x1="390" y1="468" x2="630" y2="468" stroke="#fde8d5" stroke-width="1"/>
+    <text x="404" y="484" font-size="10" fill="#444" font-style="italic">+ __str__(): str</text>
+    <text x="404" y="499" font-size="10" fill="#777">Meta: verbose_name</text>
+    <text x="404" y="514" font-size="10" fill="#777">      verbose_name_plural</text>
+  </g>
+
+  <!-- ===== CLINIC ===== -->
+  <g filter="url(#shadow)">
+    <rect x="390" y="600" width="240" height="270" rx="6" fill="white" stroke="#5b2c6f" stroke-width="2"/>
+    <rect x="390" y="600" width="240" height="50" rx="6" fill="#5b2c6f"/>
+    <rect x="390" y="630" width="240" height="20" fill="#5b2c6f"/>
+    <text x="510" y="620" text-anchor="middle" font-size="10" fill="#d7bde2">appointments</text>
+    <text x="510" y="640" text-anchor="middle" font-size="13" font-weight="700" fill="white">Clinic</text>
+    <line x1="390" y1="650" x2="630" y2="650" stroke="#ead5f0" stroke-width="1"/>
+    <text x="404" y="668" font-size="10" fill="#222">+ id: BigAutoField (PK)</text>
+    <text x="404" y="683" font-size="10" fill="#222">+ name: CharField(200)</text>
+    <text x="404" y="698" font-size="10" fill="#222">+ region: CharField(choices)</text>
+    <text x="404" y="713" font-size="10" fill="#222">+ department: CharField(100)</text>
+    <text x="404" y="728" font-size="10" fill="#222">+ city: CharField(100)</text>
+    <text x="404" y="743" font-size="10" fill="#222">+ address: CharField(255)</text>
+    <text x="404" y="758" font-size="10" fill="#222">+ phone: CharField(20)</text>
+    <text x="404" y="773" font-size="10" fill="#555">REGION_CHOICES: list[tuple]</text>
+    <line x1="390" y1="783" x2="630" y2="783" stroke="#ead5f0" stroke-width="1"/>
+    <text x="404" y="799" font-size="10" fill="#444" font-style="italic">+ __str__(): str</text>
+    <text x="404" y="814" font-size="10" fill="#777">Meta: ordering=[region,city]</text>
+    <text x="404" y="829" font-size="10" fill="#777">      verbose_name</text>
+    <text x="404" y="844" font-size="10" fill="#777">      verbose_name_plural</text>
+    <text x="404" y="862" font-size="10" fill="#888">REGION_CHOICES: 12 régions</text>
+  </g>
+
+  <!-- ===== SPECIALIST ===== -->
+  <g filter="url(#shadow)">
+    <rect x="740" y="80" width="280" height="235" rx="6" fill="white" stroke="#7b241c" stroke-width="2"/>
+    <rect x="740" y="80" width="280" height="50" rx="6" fill="#7b241c"/>
+    <rect x="740" y="110" width="280" height="20" fill="#7b241c"/>
+    <text x="880" y="100" text-anchor="middle" font-size="10" fill="#f1948a">appointments</text>
+    <text x="880" y="120" text-anchor="middle" font-size="13" font-weight="700" fill="white">Specialist</text>
+    <line x1="740" y1="130" x2="1020" y2="130" stroke="#fadbd8" stroke-width="1"/>
+    <text x="754" y="148" font-size="10" fill="#222">+ id: BigAutoField (PK)</text>
+    <text x="754" y="163" font-size="10" fill="#222">+ bio: TextField</text>
+    <text x="754" y="178" font-size="10" fill="#555">+ user: OneToOneField → User</text>
+    <text x="754" y="191" font-size="10" fill="#555">  (CASCADE)</text>
+    <text x="754" y="206" font-size="10" fill="#555">+ specialty: FK → Specialty</text>
+    <text x="754" y="219" font-size="10" fill="#555">  (SET_NULL, null=True)</text>
+    <text x="754" y="234" font-size="10" fill="#555">+ clinics: M2M → Clinic</text>
+    <text x="754" y="247" font-size="10" fill="#555">  (blank=True)</text>
+    <line x1="740" y1="257" x2="1020" y2="257" stroke="#fadbd8" stroke-width="1"/>
+    <text x="754" y="273" font-size="10" fill="#444" font-style="italic">+ __str__(): str</text>
+    <text x="754" y="288" font-size="10" fill="#777">Meta: verbose_name</text>
+    <text x="754" y="303" font-size="10" fill="#777">      verbose_name_plural</text>
+  </g>
+
+  <!-- ===== APPOINTMENT ===== -->
+  <g filter="url(#shadow)">
+    <rect x="740" y="385" width="280" height="320" rx="6" fill="white" stroke="#1a2340" stroke-width="2"/>
+    <rect x="740" y="385" width="280" height="50" rx="6" fill="#1a2340"/>
+    <rect x="740" y="415" width="280" height="20" fill="#1a2340"/>
+    <text x="880" y="405" text-anchor="middle" font-size="10" fill="#8fa8cc">appointments</text>
+    <text x="880" y="425" text-anchor="middle" font-size="13" font-weight="700" fill="white">Appointment</text>
+    <line x1="740" y1="435" x2="1020" y2="435" stroke="#d5dce8" stroke-width="1"/>
+    <text x="754" y="453" font-size="10" fill="#222">+ id: BigAutoField (PK)</text>
+    <text x="754" y="468" font-size="10" fill="#222">+ date: DateTimeField</text>
+    <text x="754" y="483" font-size="10" fill="#222">+ status: CharField(choices)</text>
+    <text x="754" y="498" font-size="10" fill="#222">+ notes: TextField</text>
+    <text x="754" y="513" font-size="10" fill="#555">+ patient: FK → User</text>
+    <text x="754" y="526" font-size="10" fill="#555">  (CASCADE, rel=appointments)</text>
+    <text x="754" y="541" font-size="10" fill="#555">+ specialist: FK → Specialist</text>
+    <text x="754" y="554" font-size="10" fill="#555">  (CASCADE)</text>
+    <text x="754" y="569" font-size="10" fill="#555">+ exam_type: FK → ExamType</text>
+    <text x="754" y="582" font-size="10" fill="#555">  (SET_NULL, null=True)</text>
+    <text x="754" y="597" font-size="10" fill="#555">+ clinic: FK → Clinic</text>
+    <text x="754" y="610" font-size="10" fill="#555">  (SET_NULL, null=True)</text>
+    <text x="754" y="625" font-size="10" fill="#444">STATUS_CHOICES: list[tuple]</text>
+    <line x1="740" y1="635" x2="1020" y2="635" stroke="#d5dce8" stroke-width="1"/>
+    <text x="754" y="651" font-size="10" fill="#444" font-style="italic">+ __str__(): str</text>
+    <text x="754" y="666" font-size="10" fill="#777">Meta: verbose_name</text>
+    <text x="754" y="681" font-size="10" fill="#777">      verbose_name_plural</text>
+    <text x="754" y="696" font-size="10" fill="#777">ordering: -date (default filter)</text>
+  </g>
+
+  <!-- ===== DOCUMENT ===== -->
+  <g filter="url(#shadow)">
+    <rect x="740" y="775" width="280" height="130" rx="6" fill="white" stroke="#0b5345" stroke-width="2"/>
+    <rect x="740" y="775" width="280" height="50" rx="6" fill="#0b5345"/>
+    <rect x="740" y="805" width="280" height="20" fill="#0b5345"/>
+    <text x="880" y="795" text-anchor="middle" font-size="10" fill="#76d7c4">appointments</text>
+    <text x="880" y="815" text-anchor="middle" font-size="13" font-weight="700" fill="white">Document</text>
+    <line x1="740" y1="825" x2="1020" y2="825" stroke="#d0ece8" stroke-width="1"/>
+    <text x="754" y="843" font-size="10" fill="#222">+ id: BigAutoField (PK)</text>
+    <text x="754" y="858" font-size="10" fill="#222">+ file: FileField(upload_to=documents/)</text>
+    <text x="754" y="873" font-size="10" fill="#222">+ document_type: CharField(choices)</text>
+    <text x="754" y="888" font-size="10" fill="#222">+ uploaded_at: DateTimeField(auto)</text>
+    <text x="754" y="903" font-size="10" fill="#555">+ appointment: FK → Appointment</text>
+  </g>
+
+  <!-- ===== RELATIONS ===== -->
+
+  <!-- AbstractUser → User (héritage) -->
+  <line x1="160" y1="230" x2="160" y2="305" stroke="#1a5fa8" stroke-width="2" marker-end="url(#arrow-inherit)"/>
+  <text x="170" y="272" font-size="10" fill="#1a5fa8">hérite</text>
+
+  <!-- User → Specialist (OneToOne) -->
+  <line x1="290" y1="390" x2="740" y2="175" stroke="#7b241c" stroke-width="1.5" stroke-dasharray="5,3"/>
+  <text x="298" y="382" font-size="10" fill="#7b241c">1</text>
+  <text x="720" y="170" font-size="10" fill="#7b241c" text-anchor="end">0..1</text>
+  <text x="460" y="270" font-size="10" fill="#7b241c" font-style="italic">«OneToOne»</text>
+
+  <!-- User → Appointment (patient) -->
+  <line x1="290" y1="470" x2="740" y2="530" stroke="#1a2340" stroke-width="1.5"/>
+  <text x="298" y="463" font-size="10" fill="#1a2340">1</text>
+  <text x="718" y="524" font-size="10" fill="#1a2340" text-anchor="end">0..*</text>
+  <text x="490" y="495" font-size="10" fill="#1a2340" font-style="italic">prend</text>
+
+  <!-- Specialty → ExamType -->
+  <line x1="510" y1="245" x2="510" y2="315" stroke="#b94600" stroke-width="1.5" marker-end="url(#arrow-assoc)"/>
+  <text x="520" y="265" font-size="10" fill="#b94600">1</text>
+  <text x="520" y="308" font-size="10" fill="#b94600">0..*</text>
+
+  <!-- Specialty → Specialist -->
+  <line x1="630" y1="155" x2="740" y2="185" stroke="#1a7a40" stroke-width="1.5" marker-end="url(#arrow-assoc)"/>
+  <text x="636" y="149" font-size="10" fill="#1a7a40">1</text>
+  <text x="720" y="200" font-size="10" fill="#1a7a40" text-anchor="end">0..*</text>
+  <text x="685" y="162" font-size="10" fill="#1a7a40" font-style="italic">spécialisé en</text>
+
+  <!-- Specialist → Appointment -->
+  <line x1="880" y1="315" x2="880" y2="385" stroke="#1a2340" stroke-width="1.5" marker-end="url(#arrow-assoc)"/>
+  <text x="890" y="335" font-size="10" fill="#1a2340">1</text>
+  <text x="890" y="378" font-size="10" fill="#1a2340">0..*</text>
+  <text x="900" y="355" font-size="10" fill="#1a2340" font-style="italic">assure</text>
+
+  <!-- Specialist ↔ Clinic (M2M) -->
+  <line x1="740" y1="248" x2="630" y2="720" stroke="#5b2c6f" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <text x="646" y="718" font-size="10" fill="#5b2c6f">0..*</text>
+  <text x="722" y="262" font-size="10" fill="#5b2c6f" text-anchor="end">0..*</text>
+  <text x="644" y="490" font-size="10" fill="#5b2c6f" font-style="italic">«M2M»</text>
+  <text x="644" y="504" font-size="10" fill="#5b2c6f" font-style="italic">exerce dans</text>
+
+  <!-- ExamType → Appointment -->
+  <line x1="630" y1="440" x2="740" y2="525" stroke="#b94600" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arrow-assoc)"/>
+  <text x="636" y="434" font-size="10" fill="#b94600">0..1</text>
+  <text x="718" y="520" font-size="10" fill="#b94600" text-anchor="end">0..*</text>
+
+  <!-- Clinic → Appointment -->
+  <line x1="630" y1="720" x2="740" y2="596" stroke="#5b2c6f" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arrow-assoc)"/>
+  <text x="636" y="716" font-size="10" fill="#5b2c6f">0..1</text>
+  <text x="718" y="592" font-size="10" fill="#5b2c6f" text-anchor="end">0..*</text>
+
+  <!-- Appointment → Document (composition) -->
+  <line x1="880" y1="705" x2="880" y2="775" stroke="#0b5345" stroke-width="2" marker-end="url(#arrow-assoc)"/>
+  <rect x="874" y="698" width="12" height="9" fill="#0b5345" rx="1"/>
+  <text x="890" y="725" font-size="10" fill="#0b5345">1</text>
+  <text x="890" y="768" font-size="10" fill="#0b5345">0..*</text>
+  <text x="902" y="745" font-size="10" fill="#0b5345" font-style="italic">contient</text>
+
+  <!-- LÉGENDE -->
+  <rect x="1060" y="80" width="215" height="255" rx="6" fill="white" stroke="#ddd" stroke-width="1" filter="url(#shadow)"/>
+  <text x="1168" y="102" text-anchor="middle" font-size="12" font-weight="700" fill="#222">Légende</text>
+  <line x1="1060" y1="110" x2="1275" y2="110" stroke="#eee" stroke-width="1"/>
+  <line x1="1075" y1="128" x2="1115" y2="128" stroke="#1a5fa8" stroke-width="2" marker-end="url(#arrow-inherit)"/>
+  <text x="1122" y="132" font-size="10" fill="#333">Héritage</text>
+  <line x1="1075" y1="152" x2="1115" y2="152" stroke="#444" stroke-width="1.5" marker-end="url(#arrow-assoc)"/>
+  <text x="1122" y="156" font-size="10" fill="#333">Association (FK)</text>
+  <line x1="1075" y1="176" x2="1115" y2="176" stroke="#444" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arrow-assoc)"/>
+  <text x="1122" y="180" font-size="10" fill="#333">FK nullable</text>
+  <line x1="1075" y1="200" x2="1115" y2="200" stroke="#5b2c6f" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <text x="1122" y="204" font-size="10" fill="#333">ManyToMany</text>
+  <line x1="1075" y1="224" x2="1115" y2="224" stroke="#0b5345" stroke-width="2" marker-end="url(#arrow-assoc)"/>
+  <rect x="1069" y="218" width="10" height="7" fill="#0b5345" rx="1"/>
+  <text x="1122" y="228" font-size="10" fill="#333">Composition (CASCADE)</text>
+  <line x1="1060" y1="238" x2="1275" y2="238" stroke="#eee" stroke-width="1"/>
+  <text x="1075" y="256" font-size="10" fill="#555">+ attr    attribut public</text>
+  <text x="1075" y="272" font-size="10" fill="#555">FK        clé étrangère</text>
+  <text x="1075" y="288" font-size="10" fill="#555">PK        clé primaire</text>
+  <text x="1075" y="304" font-size="10" fill="#555" font-style="italic">+ méth(): type   méthode</text>
+  <text x="1075" y="320" font-size="10" fill="#888">Gris = classe Django</text>
+</svg>
