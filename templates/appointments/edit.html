@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block title %}Modifier le rendez-vous — Health North{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-7 col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-pencil-square me-2"></i>Modifier le rendez-vous
+            </div>
+            <div class="card-body p-4">
+
+                <!-- Récapitulatif non modifiable -->
+                <div class="p-3 mb-4 rounded" style="background: var(--hn-blue-light);">
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <small class="text-muted d-block">Spécialiste</small>
+                            <strong>{{ appointment.specialist }}</strong>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted d-block">Spécialité</small>
+                            <strong>{{ appointment.specialist.specialty }}</strong>
+                        </div>
+                        <div class="col-6 mt-2">
+                            <small class="text-muted d-block">Clinique</small>
+                            <strong>{% if appointment.clinic %}{{ appointment.clinic.name }}{% else %}—{% endif %}</strong>
+                        </div>
+                        <div class="col-6 mt-2">
+                            <small class="text-muted d-block">Type d'examen</small>
+                            <strong>{% if appointment.exam_type %}{{ appointment.exam_type.name }}{% else %}—{% endif %}</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">
+                            <i class="bi bi-calendar2-event me-1 text-muted"></i>Nouvelle date et heure
+                        </label>
+                        <input type="datetime-local"
+                               name="date"
+                               class="form-control"
+                               min="{{ now }}"
+                               value="{{ appointment.date|date:'Y-m-d' }}T{{ appointment.date|date:'H:i' }}"
+                               required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label">
+                            <i class="bi bi-chat-text me-1 text-muted"></i>Notes (optionnel)
+                        </label>
+                        <textarea name="notes" class="form-control" rows="3">{{ appointment.notes }}</textarea>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary flex-fill">
+                            <i class="bi bi-check-circle me-2"></i>Enregistrer
+                        </button>
+                        <a href="/appointments/" class="btn btn-outline-secondary flex-fill">
+                            <i class="bi bi-x-circle me-2"></i>Annuler
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

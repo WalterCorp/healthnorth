@@ -3,88 +3,76 @@
 {% block title %}Dépôt de documents — Health North{% endblock %}
 
 {% block content %}
-<div class="row mt-4">
-    <div class="col-md-6 offset-md-3">
+<div class="row justify-content-center">
+    <div class="col-md-7 col-lg-6">
 
-        <!-- Informations du rendez-vous concerné -->
         <div class="card mb-4">
             <div class="card-header">
-                <h3>Dépôt de documents</h3>
+                <i class="bi bi-file-earmark-medical me-2"></i>Dépôt de documents
             </div>
             <div class="card-body">
-                <p class="text-muted mb-1">Rendez-vous du {{ appointment.date|date:"d/m/Y H:i" }}</p>
-                <p class="text-muted mb-0">{{ appointment.specialist }} — {{ appointment.clinic.name }}</p>
+                <p class="text-muted mb-1">
+                    <i class="bi bi-clock me-1"></i>Rendez-vous du {{ appointment.date|date:"d/m/Y H:i" }}
+                </p>
+                <p class="text-muted mb-0">
+                    <i class="bi bi-person-badge me-1"></i>{{ appointment.specialist }} — {{ appointment.clinic.name }}
+                </p>
             </div>
         </div>
 
-        <!-- Formulaire d'upload de document -->
-        <!-- enctype="multipart/form-data" : obligatoire pour l'upload de fichiers -->
         <div class="card mb-4">
             <div class="card-header">
-                <h5 class="mb-0">Ajouter un document</h5>
+                <i class="bi bi-upload me-2"></i>Ajouter un document
             </div>
-            <div class="card-body">
+            <div class="card-body p-4">
                 <form method="post" enctype="multipart/form-data">
                     {% csrf_token %}
-
-                    <!-- Type de document -->
                     <div class="mb-3">
                         <label class="form-label">Type de document</label>
                         <select name="document_type" class="form-select" required>
-                            <!-- document_types = liste de tuples (valeur, label) -->
                             {% for value, label in document_types %}
                                 <option value="{{ value }}">{{ label }}</option>
                             {% endfor %}
                         </select>
                     </div>
-
-                    <!-- Fichier à uploader -->
-                    <div class="mb-3">
+                    <div class="mb-4">
                         <label class="form-label">Fichier</label>
-                        <!-- accept : limite les types de fichiers acceptés côté navigateur -->
-                        <input
-                            type="file"
-                            name="file"
-                            class="form-control"
-                            accept=".pdf,.jpg,.jpeg,.png"
-                            required>
-                        <div class="form-text">Formats acceptés : PDF, JPG, PNG</div>
+                        <input type="file" name="file" class="form-control"
+                               accept=".pdf,.jpg,.jpeg,.png" required>
+                        <div class="form-text text-muted">Formats acceptés : PDF, JPG, PNG</div>
                     </div>
-
                     <button type="submit" class="btn btn-primary w-100">
-                        Déposer le document
+                        <i class="bi bi-upload me-2"></i>Déposer le document
                     </button>
                 </form>
             </div>
         </div>
 
-        <!-- Liste des documents déjà déposés -->
         {% if documents %}
         <div class="card mb-4">
             <div class="card-header">
-                <h5 class="mb-0">Documents déposés</h5>
+                <i class="bi bi-folder2-open me-2"></i>Documents déposés
             </div>
-            <div class="card-body">
+            <div class="table-responsive">
                 <table class="table mb-0">
-                    <thead>
+                    <thead style="background: var(--hn-blue-light);">
                         <tr>
-                            <th>Type</th>
-                            <th>Fichier</th>
-                            <th>Déposé le</th>
+                            <th class="ps-4 py-3" style="color: var(--hn-blue-dark);">Type</th>
+                            <th class="py-3" style="color: var(--hn-blue-dark);">Fichier</th>
+                            <th class="py-3" style="color: var(--hn-blue-dark);">Déposé le</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for document in documents %}
                         <tr>
-                            <!-- get_document_type_display : label lisible depuis les choices -->
-                            <td>{{ document.get_document_type_display }}</td>
-                            <td>
-                                <!-- Lien de téléchargement du fichier -->
-                                <a href="{{ document.file.url }}" target="_blank">
+                            <td class="ps-4 py-3">{{ document.get_document_type_display }}</td>
+                            <td class="py-3">
+                                <a href="{{ document.file.url }}" target="_blank" class="text-decoration-none">
+                                    <i class="bi bi-file-earmark me-1"></i>
                                     {{ document.file.name|cut:"documents/" }}
                                 </a>
                             </td>
-                            <td>{{ document.uploaded_at|date:"d/m/Y H:i" }}</td>
+                            <td class="py-3">{{ document.uploaded_at|date:"d/m/Y H:i" }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -93,9 +81,8 @@
         </div>
         {% endif %}
 
-        <!-- Lien pour aller directement à la liste des rendez-vous -->
-        <a href="/appointments/" class="btn btn-secondary w-100">
-            Accéder à mes rendez-vous
+        <a href="/appointments/" class="btn btn-outline-secondary w-100">
+            <i class="bi bi-arrow-left me-2"></i>Retour à mes rendez-vous
         </a>
 
     </div>

@@ -200,3 +200,34 @@ def api_specialists(request, clinic_id):
         for s in specialists
     ]
     return JsonResponse(result, safe=False)
+
+@login_required
+def appointment_edit(request, appointment_id):
+    """Vue de modification d'un rendez-vous (date et notes uniquement)."""
+    appointment = get_object_or_404(
+        Appointment,
+        id=appointment_id,
+        patient=request.user
+    )
+
+    # Impossible de modifier un rendez-vous annulé
+    if appointment.status == 'cancelled':
+        messages.error(request, 'Impossible de modifier un rendez-vous annulé.')
+        return redirect('appointment_list')
+
+    if request.method == 'POST':
+        date = request.POST.get('date')
+        notes = request.POST.get('notes', '').strip()
+        if date:
+            appointment.date = date
+            appointment.notes = notes
+            appointment.save()
+            messages.success(request, 'Rendez-vous modifié avec succès.')
+            return redirect('appointment_list')
+        else:
+            messages.error(request, 'Veuillez saisir une date valide.')
+
+    return render(request, 'appointments/edit.html', {
+        'appointment': appointment,
+        'now': timezone.now().strftime('%Y-%m-%dT%H:%M'),
+    })

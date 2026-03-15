@@ -10,22 +10,18 @@ urlpatterns = [
     path('new/', views.appointment_new, name='appointment_new'),
     # Page de synthèse avant confirmation finale du rendez-vous
     path('confirm/', views.appointment_confirm, name='appointment_confirm'),
-    # Annulation d'un rendez-vous — <int:appointment_id> = identifiant du RDV
-    # Ex : /appointments/3/cancel/ annule le rendez-vous n°3
+    # Modification d'un rendez-vous (date et notes)
+    path('<int:appointment_id>/edit/', views.appointment_edit, name='appointment_edit'),
+    # Annulation d'un rendez-vous
     path('<int:appointment_id>/cancel/', views.appointment_cancel, name='appointment_cancel'),
     # Dépôt de documents pour un rendez-vous confirmé
-    # Ex : /appointments/3/documents/ pour le rendez-vous n°3
     path('<int:appointment_id>/documents/', views.appointment_documents, name='appointment_documents'),
-    # API JSON — retourne les examens filtrés par spécialité du spécialiste
-    # Appelée en JavaScript lors du changement de spécialiste dans le formulaire
+    # API JSON — examens filtrés par spécialité du spécialiste
     path('api/exam-types/<int:specialist_id>/', views.api_exam_types, name='api_exam_types'),
-    # API JSON — retourne les villes disponibles pour une région donnée
-    # Appelée en JavaScript lors du changement de région dans le formulaire
+    # API JSON — villes disponibles pour une région donnée
     path('api/cities/<str:region>/', views.api_cities, name='api_cities'),
-    # API JSON — retourne les cliniques disponibles pour une ville donnée
-    # Appelée en JavaScript lors du changement de ville dans le formulaire
+    # API JSON — cliniques disponibles pour une ville donnée
     path('api/clinics/<str:city>/', views.api_clinics, name='api_clinics'),
-    # API JSON — retourne les spécialistes disponibles dans une clinique donnée
-    # Appelée en JavaScript lors du changement de clinique dans le formulaire
+    # API JSON — spécialistes disponibles dans une clinique donnée
     path('api/specialists/<int:clinic_id>/', views.api_specialists, name='api_specialists'),
 ]
