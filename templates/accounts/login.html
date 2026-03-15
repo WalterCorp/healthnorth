@@ -3,24 +3,34 @@
 {% block title %}Connexion — Health North{% endblock %}
 
 {% block content %}
-<div class="row mt-5">
-    <div class="col-md-4 offset-md-4">
+<div class="row justify-content-center mt-4">
+    <div class="col-md-5 col-lg-4">
         <div class="card">
-            <div class="card-header">
-                <h3>Connexion</h3>
+            <div class="card-header text-center">
+                <i class="bi bi-box-arrow-in-right me-2"></i>Connexion
             </div>
-            <div class="card-body">
+            <div class="card-body p-4">
                 <form method="post">
-                    <!-- Protection CSRF obligatoire sur tout formulaire POST -->
                     {% csrf_token %}
-                    {{ form.as_p }}
-                    <button type="submit" class="btn btn-primary w-100 mt-3">
-                        Se connecter
+                    {% for field in form %}
+                        <div class="mb-3">
+                            <label class="form-label">{{ field.label }}</label>
+                            <input type="{{ field.field.widget.input_type }}"
+                                   name="{{ field.html_name }}"
+                                   class="form-control {% if field.errors %}is-invalid{% endif %}"
+                                   {% if field.value %}value="{{ field.value }}"{% endif %}>
+                            {% for error in field.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-primary w-100 mt-2">
+                        <i class="bi bi-box-arrow-in-right me-2"></i>Se connecter
                     </button>
                 </form>
-                <p class="mt-3 text-center">
+                <p class="mt-3 text-center text-muted small">
                     Pas encore de compte ?
-                    <a href="/accounts/register/">S'inscrire</a>
+                    <a href="/accounts/register/" class="text-decoration-none fw-semibold">S'inscrire</a>
                 </p>
             </div>
         </div>

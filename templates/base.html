@@ -3,52 +3,164 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- block title : chaque page enfant définit son propre titre -->
     <title>{% block title %}Health North{% endblock %}</title>
-    <!-- Bootstrap via CDN : framework CSS pour le style -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --hn-blue: #1A5FA8;
+            --hn-blue-dark: #0d3d6e;
+            --hn-blue-light: #e8f0fb;
+        }
+        body {
+            background-color: #f8f9fb;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .navbar {
+            background: linear-gradient(135deg, var(--hn-blue-dark), var(--hn-blue)) !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            padding: 0.75rem 0;
+        }
+        .navbar-brand {
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            color: #fff !important;
+        }
+        .navbar-brand span {
+            color: #90c8ff;
+        }
+        .nav-link {
+            color: rgba(255,255,255,0.85) !important;
+            font-weight: 500;
+            padding: 0.4rem 0.9rem !important;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .nav-link:hover {
+            color: #fff !important;
+            background: rgba(255,255,255,0.15);
+        }
+        .nav-link i { margin-right: 4px; }
+        .main-content {
+            flex: 1;
+            padding: 2rem 0;
+        }
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 2px 16px rgba(26,95,168,0.08);
+        }
+        .card-header {
+            background: linear-gradient(135deg, var(--hn-blue-dark), var(--hn-blue));
+            color: white;
+            border-radius: 12px 12px 0 0 !important;
+            padding: 1rem 1.5rem;
+            font-weight: 600;
+        }
+        .btn-primary {
+            background: var(--hn-blue);
+            border-color: var(--hn-blue);
+            border-radius: 8px;
+            font-weight: 500;
+            padding: 0.5rem 1.5rem;
+        }
+        .btn-primary:hover {
+            background: var(--hn-blue-dark);
+            border-color: var(--hn-blue-dark);
+        }
+        .btn-outline-secondary {
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        .form-control, .form-select {
+            border-radius: 8px;
+            border: 1.5px solid #dee2e6;
+            padding: 0.5rem 0.85rem;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: var(--hn-blue);
+            box-shadow: 0 0 0 3px rgba(26,95,168,0.12);
+        }
+        .form-label {
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 0.3rem;
+        }
+        .alert {
+            border-radius: 10px;
+            border: none;
+        }
+        .alert-success { background: #e8f5e9; color: #2e7d32; }
+        .alert-error, .alert-danger { background: #fdecea; color: #c62828; }
+        .alert-info { background: var(--hn-blue-light); color: var(--hn-blue-dark); }
+        .badge-pending { background: #fff3cd; color: #856404; }
+        .badge-confirmed { background: #d1e7dd; color: #0f5132; }
+        .badge-cancelled { background: #f8d7da; color: #842029; }
+        footer {
+            background: var(--hn-blue-dark);
+            color: rgba(255,255,255,0.7);
+            padding: 1.2rem 0;
+            font-size: 0.875rem;
+            margin-top: auto;
+        }
+        footer a { color: rgba(255,255,255,0.85); text-decoration: none; }
+        footer a:hover { color: #fff; }
+    </style>
+    {% block extra_css %}{% endblock %}
 </head>
 <body>
 
-    <!-- NAVBAR : barre de navigation commune à toutes les pages -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <nav class="navbar navbar-expand-lg">
         <div class="container">
-            <a class="navbar-brand" href="/">Health North</a>
-            <div class="navbar-nav ms-auto">
-                <!-- Affichage conditionnel selon l'état de connexion -->
+            <a class="navbar-brand" href="/">
+                <i class="bi bi-heart-pulse-fill me-2"></i>Health <span>North</span>
+            </a>
+            <div class="navbar-nav ms-auto d-flex flex-row gap-1">
                 {% if user.is_authenticated %}
-                    <!-- Utilisateur connecté : affiche ses options -->
-                    <a class="nav-link" href="/appointments/">Mes rendez-vous</a>
-                    <!-- Lien vers la page de modification du profil -->
-                    <a class="nav-link" href="/accounts/profile/">Mon profil</a>
-                    <a class="nav-link" href="/accounts/logout/">Déconnexion</a>
+                    <a class="nav-link" href="/appointments/">
+                        <i class="bi bi-calendar-check"></i>Mes rendez-vous
+                    </a>
+                    <a class="nav-link" href="/accounts/profile/">
+                        <i class="bi bi-person-circle"></i>Mon profil
+                    </a>
+                    <a class="nav-link" href="/accounts/logout/">
+                        <i class="bi bi-box-arrow-right"></i>Déconnexion
+                    </a>
                 {% else %}
-                    <!-- Utilisateur non connecté : affiche connexion/inscription -->
-                    <a class="nav-link" href="/accounts/login/">Connexion</a>
-                    <a class="nav-link" href="/accounts/register/">Inscription</a>
+                    <a class="nav-link" href="/accounts/login/">
+                        <i class="bi bi-box-arrow-in-right"></i>Connexion
+                    </a>
+                    <a class="nav-link" href="/accounts/register/">
+                        <i class="bi bi-person-plus"></i>Inscription
+                    </a>
                 {% endif %}
             </div>
         </div>
     </nav>
 
-    <!-- CONTENU PRINCIPAL -->
-    <div class="container mt-4">
-
-        <!-- Affichage des messages Django (succès, erreurs, infos) -->
-        <!-- Ces messages sont générés par views.py via messages.success() etc. -->
-        {% for message in messages %}
-            <div class="alert alert-{{ message.tags }}">
-                {{ message }}
-            </div>
-        {% endfor %}
-
-        <!-- block content : zone remplie par chaque page enfant -->
-        {% block content %}
-        {% endblock %}
-
+    <div class="main-content">
+        <div class="container">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} d-flex align-items-center mb-3">
+                    <i class="bi bi-check-circle-fill me-2"></i>
+                    {{ message }}
+                </div>
+            {% endfor %}
+            {% block content %}{% endblock %}
+        </div>
     </div>
 
-    <!-- Bootstrap JS : nécessaire pour les composants interactifs -->
+    <footer>
+        <div class="container d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-heart-pulse-fill me-1"></i>Health North — Plateforme de réservation médicale</span>
+            <span>BTS SIO SLAM — 2026</span>
+        </div>
+    </footer>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

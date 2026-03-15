@@ -3,69 +3,96 @@
 {% block title %}Mes rendez-vous — Health North{% endblock %}
 
 {% block content %}
-<div class="row mt-4">
-    <div class="col-md-10 offset-md-1">
+<div class="row justify-content-center">
+    <div class="col-lg-11">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>Mes rendez-vous</h2>
+            <h2 class="fw-bold mb-0" style="color: #1a2340;">
+                <i class="bi bi-calendar-check me-2" style="color: var(--hn-blue);"></i>Mes rendez-vous
+            </h2>
             <a href="/appointments/new/" class="btn btn-primary">
-                Prendre un rendez-vous
+                <i class="bi bi-plus-circle me-2"></i>Prendre un rendez-vous
             </a>
         </div>
 
-        <!-- Vérifie si le patient a des rendez-vous -->
         {% if appointments %}
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Spécialiste</th>
-                        <th>Spécialité</th>
-                        <th>Clinique</th>
-                        <th>Type d'examen</th>
-                        <th>Statut</th>
-                        <th>Notes</th>
-                        <!-- Colonne action pour le bouton d'annulation -->
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- Boucle sur tous les rendez-vous du patient connecté -->
-                    {% for appointment in appointments %}
-                    <tr>
-                        <!-- Filtre date : formate la date en format français -->
-                        <td>{{ appointment.date|date:"d/m/Y H:i" }}</td>
-                        <td>{{ appointment.specialist }}</td>
-                        <!-- Accès à la spécialité via la relation specialist.specialty -->
-                        <td>{{ appointment.specialist.specialty }}</td>
-                        <!-- Accès à la clinique — affiche un tiret si non renseignée -->
-                        <td>{% if appointment.clinic %}{{ appointment.clinic.name }}{% else %}—{% endif %}</td>
-                        <!-- Accès au type d'examen — affiche un tiret si non renseigné -->
-                        <td>{% if appointment.exam_type %}{{ appointment.exam_type.name }}{% else %}—{% endif %}</td>
-                        <!-- get_status_display : affiche le label lisible -->
-                        <td>{{ appointment.get_status_display }}</td>
-                        <td>{% if appointment.notes %}{{ appointment.notes }}{% else %}—{% endif %}</td>
-                        <td>
-                            <!-- Bouton annulation uniquement si le RDV n'est pas déjà annulé -->
-                            {% if appointment.status != 'cancelled' %}
-                                <a href="/appointments/{{ appointment.id }}/cancel/"
-                                   class="btn btn-sm btn-danger"
-                                   onclick="return confirm('Confirmer l\'annulation ?')">
-                                    Annuler
-                                </a>
-                            {% else %}
-                                <span class="text-muted">—</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        {% else %}
-            <!-- Aucun rendez-vous : message informatif -->
-            <div class="alert alert-info">
-                Vous n'avez pas encore de rendez-vous.
-                <a href="/appointments/new/">Prendre un rendez-vous</a>
+        <div class="card">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead style="background: var(--hn-blue-light);">
+                        <tr>
+                            <th class="ps-4 py-3" style="color: var(--hn-blue-dark);">Date</th>
+                            <th class="py-3" style="color: var(--hn-blue-dark);">Spécialiste</th>
+                            <th class="py-3" style="color: var(--hn-blue-dark);">Spécialité</th>
+                            <th class="py-3" style="color: var(--hn-blue-dark);">Clinique</th>
+                            <th class="py-3" style="color: var(--hn-blue-dark);">Type d'examen</th>
+                            <th class="py-3" style="color: var(--hn-blue-dark);">Statut</th>
+                            <th class="py-3" style="color: var(--hn-blue-dark);">Notes</th>
+                            <th class="pe-4 py-3" style="color: var(--hn-blue-dark);">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for appointment in appointments %}
+                        <tr>
+                            <td class="ps-4 py-3 fw-semibold">
+                                <i class="bi bi-clock me-1 text-muted"></i>
+                                {{ appointment.date|date:"d/m/Y H:i" }}
+                            </td>
+                            <td class="py-3">
+                                <i class="bi bi-person-badge me-1 text-muted"></i>
+                                {{ appointment.specialist }}
+                            </td>
+                            <td class="py-3">{{ appointment.specialist.specialty }}</td>
+                            <td class="py-3">
+                                {% if appointment.clinic %}{{ appointment.clinic.name }}{% else %}<span class="text-muted">—</span>{% endif %}
+                            </td>
+                            <td class="py-3">
+                                {% if appointment.exam_type %}{{ appointment.exam_type.name }}{% else %}<span class="text-muted">—</span>{% endif %}
+                            </td>
+                            <td class="py-3">
+                                {% if appointment.status == 'pending' %}
+                                    <span class="badge badge-pending px-3 py-2 rounded-pill">
+                                        <i class="bi bi-hourglass-split me-1"></i>En attente
+                                    </span>
+                                {% elif appointment.status == 'confirmed' %}
+                                    <span class="badge badge-confirmed px-3 py-2 rounded-pill">
+                                        <i class="bi bi-check-circle me-1"></i>Confirmé
+                                    </span>
+                                {% else %}
+                                    <span class="badge badge-cancelled px-3 py-2 rounded-pill">
+                                        <i class="bi bi-x-circle me-1"></i>Annulé
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="py-3">
+                                {% if appointment.notes %}{{ appointment.notes }}{% else %}<span class="text-muted">—</span>{% endif %}
+                            </td>
+                            <td class="pe-4 py-3">
+                                {% if appointment.status != 'cancelled' %}
+                                    <a href="/appointments/{{ appointment.id }}/cancel/"
+                                       class="btn btn-sm btn-outline-danger"
+                                       onclick="return confirm('Confirmer l\'annulation ?')">
+                                        <i class="bi bi-x-circle me-1"></i>Annuler
+                                    </a>
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
+        </div>
+        {% else %}
+        <div class="card text-center p-5">
+            <div class="mb-3">
+                <i class="bi bi-calendar-x" style="font-size: 3rem; color: #ccc;"></i>
+            </div>
+            <h5 class="text-muted mb-3">Vous n'avez pas encore de rendez-vous</h5>
+            <a href="/appointments/new/" class="btn btn-primary mx-auto" style="width: fit-content;">
+                <i class="bi bi-plus-circle me-2"></i>Prendre un rendez-vous
+            </a>
+        </div>
         {% endif %}
     </div>
 </div>

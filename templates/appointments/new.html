@@ -3,82 +3,66 @@
 {% block title %}Nouveau rendez-vous — Health North{% endblock %}
 
 {% block content %}
-<div class="row mt-4">
-    <div class="col-md-6 offset-md-3">
+<div class="row justify-content-center">
+    <div class="col-md-7 col-lg-6">
         <div class="card">
             <div class="card-header">
-                <h3>Prendre un rendez-vous</h3>
+                <i class="bi bi-plus-circle me-2"></i>Prendre un rendez-vous
             </div>
-            <div class="card-body">
+            <div class="card-body p-4">
                 <form method="post">
                     {% csrf_token %}
 
-                    <!-- ÉTAPE 1 : Sélection de la région -->
                     <div class="mb-3">
-                        <label class="form-label">Région</label>
+                        <label class="form-label"><i class="bi bi-geo-alt me-1 text-muted"></i>Région</label>
                         <select name="region" id="region-select" class="form-select" required>
                             <option value="">-- Choisir une région --</option>
-                            <!-- regions = liste de tuples (valeur, label) depuis REGION_CHOICES -->
                             {% for value, label in regions %}
                                 <option value="{{ value }}">{{ label }}</option>
                             {% endfor %}
                         </select>
                     </div>
 
-                    <!-- ÉTAPE 2 : Sélection de la ville — mis à jour dynamiquement via JS -->
                     <div class="mb-3">
-                        <label class="form-label">Ville</label>
+                        <label class="form-label"><i class="bi bi-building me-1 text-muted"></i>Ville</label>
                         <select name="city" id="city-select" class="form-select" required disabled>
                             <option value="">-- Choisir une région d'abord --</option>
                         </select>
                     </div>
 
-                    <!-- ÉTAPE 3 : Sélection de la clinique — mis à jour dynamiquement via JS -->
                     <div class="mb-3">
-                        <label class="form-label">Clinique</label>
+                        <label class="form-label"><i class="bi bi-hospital me-1 text-muted"></i>Clinique</label>
                         <select name="clinic" id="clinic-select" class="form-select" required disabled>
                             <option value="">-- Choisir une ville d'abord --</option>
                         </select>
                     </div>
 
-                    <!-- ÉTAPE 4 : Sélection du spécialiste — mis à jour dynamiquement via JS -->
                     <div class="mb-3">
-                        <label class="form-label">Spécialiste</label>
+                        <label class="form-label"><i class="bi bi-person-badge me-1 text-muted"></i>Spécialiste</label>
                         <select name="specialist" id="specialist-select" class="form-select" required disabled>
                             <option value="">-- Choisir une clinique d'abord --</option>
                         </select>
                     </div>
 
-                    <!-- ÉTAPE 5 : Sélection du type d'examen — mis à jour dynamiquement via JS -->
                     <div class="mb-3">
-                        <label class="form-label">Type d'examen</label>
+                        <label class="form-label"><i class="bi bi-clipboard2-pulse me-1 text-muted"></i>Type d'examen</label>
                         <select name="exam_type" id="exam-type-select" class="form-select" required disabled>
                             <option value="">-- Choisir un spécialiste d'abord --</option>
                         </select>
                     </div>
 
-                    <!-- ÉTAPE 6 : Sélection de la date et heure -->
                     <div class="mb-3">
-                        <label class="form-label">Date et heure</label>
-                        <input
-                            type="datetime-local"
-                            name="date"
-                            class="form-control"
-                            min="{{ now }}"
-                            required>
+                        <label class="form-label"><i class="bi bi-calendar2-event me-1 text-muted"></i>Date et heure</label>
+                        <input type="datetime-local" name="date" class="form-control" min="{{ now }}" required>
                     </div>
 
-                    <!-- Notes optionnelles pour le médecin -->
-                    <div class="mb-3">
-                        <label class="form-label">Notes (optionnel)</label>
-                        <textarea
-                            name="notes"
-                            class="form-control"
-                            rows="3"></textarea>
+                    <div class="mb-4">
+                        <label class="form-label"><i class="bi bi-chat-text me-1 text-muted"></i>Notes (optionnel)</label>
+                        <textarea name="notes" class="form-control" rows="3" placeholder="Informations utiles pour le médecin..."></textarea>
                     </div>
 
                     <button type="submit" class="btn btn-primary w-100">
-                        Voir le récapitulatif
+                        <i class="bi bi-arrow-right-circle me-2"></i>Voir le récapitulatif
                     </button>
                 </form>
             </div>
@@ -87,7 +71,6 @@
 </div>
 
 <script>
-    // --- ÉTAPE 1 → 2 : Région sélectionnée → charge les villes ---
     document.getElementById('region-select').addEventListener('change', function () {
         const region = this.value;
         const citySelect = document.getElementById('city-select');
@@ -95,7 +78,6 @@
         const specialistSelect = document.getElementById('specialist-select');
         const examSelect = document.getElementById('exam-type-select');
 
-        // Réinitialise et désactive tous les selects suivants
         citySelect.innerHTML = '<option value="">-- Choisir une ville --</option>';
         clinicSelect.innerHTML = '<option value="">-- Choisir une ville d\'abord --</option>';
         specialistSelect.innerHTML = '<option value="">-- Choisir une clinique d\'abord --</option>';
@@ -107,7 +89,6 @@
 
         if (!region) return;
 
-        // Appel API pour récupérer les villes de la région
         fetch(`/appointments/api/cities/${region}/`)
             .then(response => response.json())
             .then(cities => {
@@ -121,12 +102,10 @@
                     option.textContent = city;
                     citySelect.appendChild(option);
                 });
-                // Active le select ville une fois les données chargées
                 citySelect.disabled = false;
             });
     });
 
-    // --- ÉTAPE 2 → 3 : Ville sélectionnée → charge les cliniques ---
     document.getElementById('city-select').addEventListener('change', function () {
         const city = this.value;
         const clinicSelect = document.getElementById('clinic-select');
@@ -142,7 +121,6 @@
 
         if (!city) return;
 
-        // Appel API pour récupérer les cliniques de la ville
         fetch(`/appointments/api/clinics/${city}/`)
             .then(response => response.json())
             .then(clinics => {
@@ -153,7 +131,6 @@
                 clinics.forEach(clinic => {
                     const option = document.createElement('option');
                     option.value = clinic.id;
-                    // Affiche le nom et l'adresse de la clinique
                     option.textContent = `${clinic.name} — ${clinic.address}`;
                     clinicSelect.appendChild(option);
                 });
@@ -161,7 +138,6 @@
             });
     });
 
-    // --- ÉTAPE 3 → 4 : Clinique sélectionnée → charge les spécialistes ---
     document.getElementById('clinic-select').addEventListener('change', function () {
         const clinicId = this.value;
         const specialistSelect = document.getElementById('specialist-select');
@@ -174,7 +150,6 @@
 
         if (!clinicId) return;
 
-        // Appel API pour récupérer les spécialistes de la clinique
         fetch(`/appointments/api/specialists/${clinicId}/`)
             .then(response => response.json())
             .then(specialists => {
@@ -192,7 +167,6 @@
             });
     });
 
-    // --- ÉTAPE 4 → 5 : Spécialiste sélectionné → charge les examens ---
     document.getElementById('specialist-select').addEventListener('change', function () {
         const specialistId = this.value;
         const examSelect = document.getElementById('exam-type-select');
@@ -202,7 +176,6 @@
 
         if (!specialistId) return;
 
-        // Appel API pour récupérer les examens filtrés par spécialité
         fetch(`/appointments/api/exam-types/${specialistId}/`)
             .then(response => response.json())
             .then(examTypes => {
@@ -220,5 +193,4 @@
             });
     });
 </script>
-
 {% endblock %}
