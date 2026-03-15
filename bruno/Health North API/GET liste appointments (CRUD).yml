@@ -8,6 +8,15 @@ http:
   url: "{{baseUrl}}/appointments/api/appointments/"
   auth: inherit
 
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body[0].specialist
+      operator: eq
+      value: Dr. Martin
+
 settings:
   encodeUrl: true
   timeout: 0

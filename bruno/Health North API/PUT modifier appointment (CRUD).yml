@@ -22,6 +22,15 @@ http:
       }
   auth: inherit
 
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.status
+      operator: eq
+      value: updated
+
 settings:
   encodeUrl: true
   timeout: 0
