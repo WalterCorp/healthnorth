@@ -1,0 +1,24 @@
+info:
+  name: GET spécialistes par clinique
+  type: http
+  seq: 5
+
+http:
+  method: GET
+  url: "{{baseUrl}}/appointments/api/specialists/1/"
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body[0].name
+      operator: eq
+      value: Dr. Dubois
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

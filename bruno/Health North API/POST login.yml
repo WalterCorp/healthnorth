@@ -1,0 +1,28 @@
+info:
+  name: POST login
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{baseUrl}}/accounts/login/"
+  headers:
+    - name: X-CSRFToken
+      value: "{{csrfToken}}"
+    - name: Cookie
+      value: "{{csrfCookie}}"
+    - name: Referer
+      value: https://healthnorth.onrender.com
+  body:
+    type: form-urlencoded
+    data:
+      - name: username
+        value: patient1
+      - name: password
+        value: NewPass456!
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

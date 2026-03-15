@@ -1,0 +1,24 @@
+info:
+  name: GET cliniques par ville
+  type: http
+  seq: 4
+
+http:
+  method: GET
+  url: "{{baseUrl}}/appointments/api/clinics/Paris/"
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body[0].name
+      operator: eq
+      value: Health North Paris Centre
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

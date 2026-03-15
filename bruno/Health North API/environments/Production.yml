@@ -1,0 +1,8 @@
+name: Production
+variables:
+  - name: baseUrl
+    value: https://healthnorth.onrender.com
+  - name: csrfToken
+    value: snh25Nhen5hTbYcONQuEJyb3zFWpkKMc
+  - name: csrfCookie
+    value: csrftoken=snh25Nhen5hTbYcONQuEJyb3zFWpkKMc
