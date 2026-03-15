@@ -231,3 +231,98 @@ def appointment_edit(request, appointment_id):
         'appointment': appointment,
         'now': timezone.now().strftime('%Y-%m-%dT%H:%M'),
     })
+
+
+import json
+
+@login_required
+def api_appointments(request):
+    """API CRUD — liste et création de rendez-vous (GET / POST)."""
+
+    if request.method == 'GET':
+        # Retourne les rendez-vous du patient connecté
+        appointments = Appointment.objects.filter(  # pylint: disable=no-member
+            patient=request.user
+        ).values(
+            'id', 'date', 'status', 'notes',
+            'specialist__user__first_name', 'specialist__user__last_name',
+            'specialist__specialty__name',
+            'clinic__name', 'exam_type__name'
+        ).order_by('-date')
+        result = [
+            {
+                'id': a['id'],
+                'date': a['date'].isoformat() if a['date'] else None,
+                'status': a['status'],
+                'notes': a['notes'],
+                'specialist': f"Dr. {a['specialist__user__last_name']}",
+                'specialty': a['specialist__specialty__name'],
+                'clinic': a['clinic__name'],
+                'exam_type': a['exam_type__name'],
+            }
+            for a in appointments
+        ]
+        return JsonResponse(result, safe=False)
+
+    if request.method == 'POST':
+        # Crée un nouveau rendez-vous
+        try:
+            data = json.loads(request.body)
+            appointment = Appointment.objects.create(  # pylint: disable=no-member
+                patient=request.user,
+                specialist_id=data['specialist_id'],
+                exam_type_id=data.get('exam_type_id'),
+                clinic_id=data.get('clinic_id'),
+                date=data['date'],
+                notes=data.get('notes', ''),
+            )
+            return JsonResponse({'id': appointment.id, 'status': 'created'}, status=201)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+
+    return JsonResponse({'error': 'Méthode non autorisée'}, status=405)
+
+
+@login_required
+def api_appointment_detail(request, appointment_id):
+    """API CRUD — détail, modification et suppression d'un rendez-vous (GET / PUT / DELETE)."""
+    appointment = get_object_or_404(
+        Appointment,
+        id=appointment_id,
+        patient=request.user
+    )
+
+    if request.method == 'GET':
+        result = {
+            'id': appointment.id,
+            'date': appointment.date.isoformat() if appointment.date else None,
+            'status': appointment.status,
+            'notes': appointment.notes,
+            'specialist': str(appointment.specialist),
+            'clinic': appointment.clinic.name if appointment.clinic else None,
+            'exam_type': appointment.exam_type.name if appointment.exam_type else None,
+        }
+        return JsonResponse(result)
+
+    if request.method == 'PUT':
+        # Modifie la date et les notes du rendez-vous
+        try:
+            data = json.loads(request.body)
+            if 'date' in data:
+                appointment.date = data['date']
+            if 'notes' in data:
+                appointment.notes = data['notes']
+            if 'status' in data:
+                appointment.status = data['status']
+            appointment.save()
+            return JsonResponse({'id': appointment.id, 'status': 'updated'})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+
+    if request.method == 'DELETE':
+        # Annule le rendez-vous (soft delete — on passe en cancelled)
+        appointment.status = 'cancelled'
+        appointment.save()
+        return JsonResponse({'id': appointment.id, 'status': 'cancelled'})
+
+    return JsonResponse({'error': 'Méthode non autorisée'}, status=405)

@@ -16,6 +16,10 @@ urlpatterns = [
     path('<int:appointment_id>/cancel/', views.appointment_cancel, name='appointment_cancel'),
     # Dépôt de documents pour un rendez-vous confirmé
     path('<int:appointment_id>/documents/', views.appointment_documents, name='appointment_documents'),
+    # API CRUD — liste et création de rendez-vous
+    path('api/appointments/', views.api_appointments, name='api_appointments'),
+    # API CRUD — détail, modification et suppression d'un rendez-vous
+    path('api/appointments/<int:appointment_id>/', views.api_appointment_detail, name='api_appointment_detail'),
     # API JSON — examens filtrés par spécialité du spécialiste
     path('api/exam-types/<int:specialist_id>/', views.api_exam_types, name='api_exam_types'),
     # API JSON — villes disponibles pour une région donnée
