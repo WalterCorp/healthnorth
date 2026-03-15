@@ -1,0 +1,22 @@
+info:
+  name: DELETE annuler appointment (CRUD)
+  type: http
+  seq: 9
+
+http:
+  method: DELETE
+  url: "{{baseUrl}}/appointments/api/appointments/3/"
+  headers:
+    - name: X-CSRFToken
+      value: "{{csrfToken}}"
+    - name: Cookie
+      value: "{{csrfCookie}}"
+    - name: Content-Type
+      value: application/json
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

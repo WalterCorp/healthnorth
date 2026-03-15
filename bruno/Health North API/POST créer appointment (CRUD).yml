@@ -1,0 +1,32 @@
+info:
+  name: POST créer appointment (CRUD)
+  type: http
+  seq: 10
+
+http:
+  method: POST
+  url: "{{baseUrl}}/appointments/api/appointments/"
+  headers:
+    - name: X-CSRFToken
+      value: "{{csrfToken}}"
+    - name: Cookie
+      value: "{{csrfCookie}}"
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "specialist_id": 1,
+        "clinic_id": 1,
+        "exam_type_id": 1,
+        "date": "2026-04-01T10:00:00",
+        "notes": "Test création via API"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

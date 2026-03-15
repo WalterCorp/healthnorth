@@ -1,0 +1,29 @@
+info:
+  name: PUT modifier appointment (CRUD)
+  type: http
+  seq: 8
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/appointments/api/appointments/4/"
+  headers:
+    - name: X-CSRFToken
+      value: "{{csrfToken}}"
+    - name: Cookie
+      value: "{{csrfCookie}}"
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "status": "confirmed",
+        "notes": "Test modification via API"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

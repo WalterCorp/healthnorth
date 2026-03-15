@@ -1,0 +1,8 @@
+name: Local
+variables:
+  - name: baseUrl
+    value: http://127.0.0.1:8000
+  - name: csrfToken
+    value: 79sW0LN0UKlEk42TN0SzGiPWkj1TXpul
+  - name: csrfCookie
+    value: csrftoken=79sW0LN0UKlEk42TN0SzGiPWkj1TXpul
