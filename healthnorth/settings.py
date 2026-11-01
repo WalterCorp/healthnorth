@@ -72,7 +72,8 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'healthnorth.wsgi.application'
 
-# Base de données — URL complète en prod, config locale en dev
+# Base de données PostgreSQL — hébergée sur Neon en production (Render n'héberge
+# que l'application), PostgreSQL local en développement
 DATABASE_URL = os.environ.get('DATABASE_URL')
 if not DATABASE_URL:
     raise ImproperlyConfigured(

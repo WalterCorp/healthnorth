@@ -20,8 +20,8 @@ Application web de réservation de rendez-vous médicaux en ligne.
 ## 🛠️ Stack technique
 
 - **Backend** : Django 6 / Python 3.12
-- **Base de données** : PostgreSQL (Supabase)
-- **Hébergement** : Render.com
+- **Base de données** : PostgreSQL serverless (Neon)
+- **Hébergement** : Render.com (application uniquement)
 - **Frontend** : Bootstrap 5.3 + Bootstrap Icons
 - **Tests API** : Bruno (collection dans `bruno/`)
 
@@ -46,18 +46,62 @@ healthnorth/
 └── healthnorth/       # Configuration Django
 ```
 
-## 📦 Installation locale
+## 💻 Lancer le projet en local
+
+### Prérequis
+
+- Python 3.12
+- PostgreSQL installé et démarré en local
+
+### 1. Cloner le dépôt et installer les dépendances
 ```bash
 git clone https://github.com/WalterCorp/healthnorth.git
 cd healthnorth
 python -m venv env
 source env/bin/activate
 pip install -r requirements.txt
+```
+
+### 2. Créer la base de données locale
+```bash
+createdb healthnorth
+```
+
+### 3. Configurer les variables d'environnement
+
+Les secrets ne sont jamais écrits dans le code : ils sont lus depuis un fichier `.env`
+(non versionné), chargé automatiquement au démarrage grâce à `python-dotenv`.
+```bash
+cp .env.example .env
+```
+
+Renseignez ensuite les valeurs dans `.env` :
+
+| Variable | Rôle |
+|----------|------|
+| `SECRET_KEY` | Clé secrète Django (obligatoire) |
+| `DEBUG` | `True` en local uniquement — désactivé par défaut |
+| `DATABASE_URL` | URL de connexion à votre PostgreSQL local, au format `postgresql://UTILISATEUR:MOT_DE_PASSE@localhost:5432/healthnorth` |
+
+Pour générer une `SECRET_KEY` :
+```bash
+python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+```
+
+> Si `SECRET_KEY` ou `DATABASE_URL` est absente, Django s'arrête avec une erreur `ImproperlyConfigured` explicite.
+
+### 4. Initialiser la base et lancer le serveur
+```bash
 python manage.py migrate
 python manage.py loaddata appointments/fixtures/initial_data.json
 python manage.py seed
 python manage.py runserver
 ```
+
+L'application est disponible sur http://127.0.0.1:8000.
+
+> En production (Render), ces variables sont définies dans le tableau de bord Render
+> et `DATABASE_URL` pointe vers la base Neon.
 
 ## 📁 Documentation
 
@@ -65,11 +109,11 @@ Tous les livrables sont disponibles dans le dossier [`docs/`](docs/) :
 
 | Document | Description |
 |----------|-------------|
-| `healthnorth_documentation.docx` | MCD, diagramme de classes, script SQL |
-| `healthnorth_maquettes_IHM.docx` | Maquettes application web |
-| `healthnorth_maquettes_mobile_lourde.docx` | Maquettes mobile et application lourde |
-| `healthnorth_protocole_tests_api.docx` | Protocole de tests API Bruno |
-| `healthnorth_infrastructure_M4_M5.docx` | Infrastructure, tickets, authentification |
+| `healthnorth_documentation.pdf` | MCD, diagramme de classes, script SQL |
+| `healthnorth_maquettes_IHM.pdf` | Maquettes application web |
+| `healthnorth_maquettes_mobile_lourde.pdf` | Maquettes mobile et application lourde |
+| `healthnorth_protocole_tests_api.pdf` | Protocole de tests API Bruno |
+| `healthnorth_infrastructure_M4_M5.pdf` | Infrastructure, tickets, authentification |
 | `healthnorth_schema.sql` | Script SQL PostgreSQL |
 
 ## 🎓 Contexte
