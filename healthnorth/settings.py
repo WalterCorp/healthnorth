@@ -5,13 +5,26 @@ Django settings for healthnorth project.
 import os
 from pathlib import Path
 
+import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
+from dotenv import load_dotenv
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Clé secrète — lue depuis l'environnement en prod, valeur par défaut en dev
-SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-n48epoxbxddrcd^rqrms_dx#+(c#50%ry885ou5839937+$39h')
+# Charge le fichier .env en local — sans effet sur Render (pas de .env,
+# et les variables déjà définies dans l'environnement ne sont jamais écrasées)
+load_dotenv(BASE_DIR / '.env')
 
-# Debug désactivé en prod — activé en dev
-DEBUG = os.environ.get('DEBUG', 'True') == 'True'
+# Clé secrète — obligatoire, lue uniquement depuis l'environnement
+SECRET_KEY = os.environ.get('SECRET_KEY')
+if not SECRET_KEY:
+    raise ImproperlyConfigured(
+        "La variable d'environnement SECRET_KEY est absente. "
+        "En local, copiez .env.example en .env et renseignez-la."
+    )
+
+# Debug désactivé par défaut — activé uniquement si DEBUG=True dans l'environnement
+DEBUG = os.environ.get('DEBUG', 'False').lower() in ('true', '1')
 
 # Hôtes autorisés — Render + localhost pour le dev
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.onrender.com']
@@ -61,25 +74,14 @@ WSGI_APPLICATION = 'healthnorth.wsgi.application'
 
 # Base de données — URL complète en prod, config locale en dev
 DATABASE_URL = os.environ.get('DATABASE_URL')
-
-if DATABASE_URL:
-    # Render fournit une URL PostgreSQL complète
-    import dj_database_url
-    DATABASES = {
-        'default': dj_database_url.parse(DATABASE_URL)
-    }
-else:
-    # Configuration locale pour le développement
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': 'healthnorth',
-            'USER': 'healthnorth_user',
-            'PASSWORD': 'healthnorth2024',
-            'HOST': 'localhost',
-            'PORT': '5432',
-        }
-    }
+if not DATABASE_URL:
+    raise ImproperlyConfigured(
+        "La variable d'environnement DATABASE_URL est absente. "
+        "En local, copiez .env.example en .env et renseignez-la."
+    )
+DATABASES = {
+    'default': dj_database_url.parse(DATABASE_URL)
+}
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
