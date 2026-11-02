@@ -60,7 +60,7 @@ Aucune commande n'a été exécutée directement sur la base de production : tou
 |---|---|---|---|---|
 | 1 | Panne de production : base Supabase en pause → migration vers Neon | 01/11/2026 | Corrective | `09b1d3c` (+ configuration Render) |
 | 2 | Secrets retirés du code, DEBUG désactivé par défaut | 01/11/2026 | Sécurité | `abf4006` |
-| 3 | Mots de passe des comptes de test en clair dans `seed.py` | 02/11/2026 | Sécurité | `5712200` |
+| 3 | Mots de passe des comptes de test en clair dans `seed.py` et la collection Bruno | 02/11/2026 | Sécurité | `5712200`, `8471256` |
 | 4 | Comptes de test créés en transactions atomiques | 02/11/2026 | Corrective | `625feff` |
 | 5 | Documents médicaux : stockage R2 privé et accès contrôlé | 02/11/2026 | Sécurité / évolutive | `f617e2d`, `1296b79`, `6cc8dad` |
 | 6 | Validation des fichiers côté serveur (extension, taille, type, signature binaire) | 02/11/2026 | Sécurité | `34bb057`, `cd0ed93` |
@@ -236,11 +236,13 @@ Le choix sûr doit être celui par défaut. Avec `DEBUG=True`, une erreur affich
 
 **Date :** 2 novembre 2026 · **Type :** sécurité
 
-> **Résumé oral (30 secondes).** La commande `seed`, qui crée les comptes de démonstration à chaque déploiement, contenait les mots de passe en clair, dont celui du superutilisateur, sur un dépôt public : n'importe qui pouvait se connecter à l'administration en production. J'ai retenu la lecture de ces mots de passe dans des variables d'environnement ; sans variable, le compte n'est pas créé et un avertissement s'affiche, sans faire échouer le déploiement. J'ai changé à la main les mots de passe des six comptes en production.
+> **Résumé oral (30 secondes).** La commande `seed`, qui crée les comptes de démonstration à chaque déploiement, contenait les mots de passe en clair, dont celui du superutilisateur, sur un dépôt public : n'importe qui pouvait se connecter à l'administration en production. J'ai retenu la lecture de ces mots de passe dans des variables d'environnement ; sans variable, le compte n'est pas créé et un avertissement s'affiche, sans faire échouer le déploiement. J'ai changé à la main les mots de passe des six comptes en production, et le mot de passe resté dans la collection Bruno est désormais lu dans un fichier local non versionné.
 
 ### Constat
 
 L'analyse des risques d'un redéploiement (le script `build.sh` relance `seed` sur la base de production) a montré, dans `appointments/management/commands/seed.py`, que les mots de passe des **6 comptes de test** (`admin`, `patient1`, `dr.martin`, `dr.dubois`, `dr.bernard`, `dr.leroy`) y étaient écrits en clair. Le compte `admin` est superutilisateur, avec un mot de passe faible. Le README affirmait pourtant que les mots de passe étaient « disponibles sur demande ».
+
+La relecture de la collection Bruno a ensuite mis en évidence le même défaut : la requête `POST login.yml`, versionnée depuis le 15 mars 2026, contenait en clair le mot de passe de `patient1` — l'ancien mot de passe de test, identique à celui de `seed.py`, déjà changé en production.
 
 ### Analyse
 
@@ -255,6 +257,7 @@ Le dépôt étant public, ces identifiants donnaient un **accès complet à l'ad
 - Les 6 blocs copiés-collés ont été remplacés par une liste de comptes et une méthode commune.
 - `.env.example` et README documentent les variables ; le tableau des comptes de test du README liste désormais les 6 comptes.
 - **J'ai changé manuellement, dans l'admin, les mots de passe des 6 comptes en production.** Les variables `SEED_*` ne sont volontairement pas définies sur Render : les comptes existent déjà et ne doivent pas être recréés.
+- **Collection Bruno :** j'ai retenu la méthode recommandée par Bruno. La requête « POST login » lit le mot de passe dans `{{process.env.PATIENT_PASSWORD}}`, défini dans un fichier `.env` local à la racine de la collection, ignoré par Git. Un `.env.example` sans valeur est versionné ; il a fallu ajouter l'exception `!.env.example` au `.gitignore` de la collection, dont la règle `.env*` ignorait aussi le modèle. Le README explique comment renseigner la variable (section « Tests API avec Bruno »).
 
 ### Tests réalisés
 
@@ -270,11 +273,14 @@ Les tests ont été réalisés sur une **base locale temporaire** (copie de ma b
 
 En production, après déploiement : site en ligne, et le compte `patient1` se connecte avec le mot de passe que j'ai changé à la main (test de la fiche 5) : le déploiement n'a pas réinitialisé les comptes existants.
 
+Collection Bruno : `git check-ignore` confirme que le `.env` de la collection est ignoré et que `.env.example` reste versionnable ; aucun mot de passe de test ne figure dans les 15 fichiers versionnés de la collection ; sur ma base locale, la connexion de `patient1` avec la valeur de `PATIENT_PASSWORD` fonctionne (302, session ouverte, puis API en 200). Exécution dans Bruno, réalisée par moi en local (Bruno 3.1.4, environnement `Local`) : « GET login page (CSRF) » → 200 ; report manuel du jeton CSRF dans `csrfToken` et `csrfCookie` ; « POST login » → 200, page d'accueil connectée « Bienvenue Jean ! ». La variable `{{process.env.PATIENT_PASSWORD}}` est bien lue depuis le `.env` de la collection.
+
 ### Commits concernés
 
 | Commit | Message |
 |---|---|
 | `5712200` | `fix: read seed passwords from environment variables` |
+| `8471256` | `fix: read Bruno login password from a local env file` |
 
 ### Compétences mobilisées
 
@@ -1021,7 +1027,7 @@ Résultat attendu : la page de connexion se réaffiche (code 200) avec une alert
 
 Dans la collection Bruno, dupliquer la requête « POST créer appointment » et remplacer la date par `2020-01-01T10:00:00`.
 
-**Prérequis : la requête doit être authentifiée** selon la procédure de la collection, où la session et le jeton CSRF sont gérés manuellement : « GET login page (CSRF) » pour obtenir le jeton, report du jeton et du cookie dans les variables d'environnement (`csrfToken`, `csrfCookie`), puis « POST login » pour ouvrir la session (procédure détaillée dans `docs/healthnorth_protocole_tests_api.pdf`). Sans cela, la réponse est une erreur d'authentification — refus CSRF (403) ou renvoi vers la page de connexion — et non le 400 attendu.
+**Prérequis : renseigner `PATIENT_PASSWORD`** dans le `.env` de la collection (voir le README, section « Tests API avec Bruno »), puis **authentifier la requête** selon la procédure de la collection, où la session et le jeton CSRF sont gérés manuellement : « GET login page (CSRF) » pour obtenir le jeton, report du jeton et du cookie dans les variables d'environnement (`csrfToken`, `csrfCookie`), puis « POST login » pour ouvrir la session (procédure détaillée dans `docs/healthnorth_protocole_tests_api.pdf`). Sans cela, la réponse est une erreur d'authentification — refus CSRF (403) ou renvoi vers la page de connexion — et non le 400 attendu.
 
 Résultat attendu : code **400** et le corps `{"error": "Données invalides.", "errors": {"date": ["La date du rendez-vous doit être dans le futur."]}}`. La requête d'origine (date `2099-06-15T10:00:00`) renvoie 201.
 
@@ -1043,7 +1049,7 @@ Résultats attendus : `System check identified no issues (0 silenced).` et `No c
 - **Analyse complète des fichiers.** La vérification porte sur la signature (premiers octets), pas sur la structure : un PDF commençant par `%PDF-` mais contenant du JavaScript ou un contenu corrompu serait accepté. Évolutions possibles : ouvrir les images avec Pillow pour vérifier leur intégrité, analyser les PDF avec une bibliothèque dédiée (ou les reconvertir), détecter le type réel avec `libmagic`.
 - **Antivirus.** Aucun contrôle antivirus n'est réalisé. Évolution possible : analyse avec ClamAV avant l'enregistrement, ou mise en quarantaine des fichiers jusqu'à l'analyse.
 - **URL signée réutilisable.** Pendant 5 minutes, une URL signée copiée reste utilisable par n'importe qui. Évolutions : durée plus courte, ou fichier servi via Django.
-- **Historique Git.** Les anciens secrets restent lisibles dans l'historique public. Ceux de production ont été remplacés ; le mot de passe de mon PostgreSQL local et les anciens mots de passe de test, qui ne servent plus qu'en local, devraient aussi être changés.
+- **Historique Git.** Les anciens secrets restent lisibles dans l'historique public. Ceux de production ont été remplacés ; le mot de passe de mon PostgreSQL local et les anciens mots de passe de test (dans `seed.py`, et dans la collection Bruno jusqu'au commit `8471256`), qui ne servent plus qu'en local, devraient aussi être changés.
 - **Protection contre les attaques par force brute.** Aucune limitation du nombre de tentatives de connexion (par exemple avec `django-axes`).
 - **Certification HDS.** Un hébergement réel de données de santé pour le compte de tiers exigerait un hébergeur certifié HDS.
 
@@ -1090,3 +1096,4 @@ Ces règles métier n'ont pas été implémentées, pour limiter le périmètre 
 | `47f57ca` | 02/11/2026 | `fix: display appointment times in local timezone in admin` | 11 |
 | `3a2ac18` | 02/11/2026 | `fix: display login error messages` | 11 |
 | `47ce05a` | 02/11/2026 | `fix: validate appointment data server-side` | 12 |
+| `8471256` | 02/11/2026 | `fix: read Bruno login password from a local env file` | 3 |
