@@ -1,6 +1,7 @@
 """Tests de l'application appointments — accès sécurisé aux documents médicaux."""
 
 # pylint: disable=no-member
+import io
 import shutil
 import tempfile
 from datetime import timedelta
@@ -13,6 +14,7 @@ from django.db import transaction
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
+from PIL import Image
 
 from .forms import MAX_UPLOAD_SIZE
 from .models import Appointment, Document, Specialist, Specialty
@@ -25,6 +27,19 @@ TEST_STORAGES = {
     'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
     'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'},
 }
+
+
+def padded_pdf(size):
+    """Contenu PDF valide (signature %PDF-) complété jusqu'à la taille demandée."""
+    header = b'%PDF-1.4\n'
+    return header + b'0' * (size - len(header))
+
+
+def image_bytes(image_format):
+    """Génère une vraie petite image (PNG ou JPEG) avec Pillow."""
+    buffer = io.BytesIO()
+    Image.new('RGB', (4, 4), 'white').save(buffer, format=image_format)
+    return buffer.getvalue()
 
 
 def tearDownModule():  # pylint: disable=invalid-name
@@ -191,12 +206,12 @@ class DocumentUploadValidationTests(TestCase):
 
     def test_file_too_large_is_rejected(self):
         """Un fichier de plus de 5 Mo est refusé."""
-        response = self.upload('gros.pdf', b'0' * (MAX_UPLOAD_SIZE + 1))
+        response = self.upload('gros.pdf', padded_pdf(MAX_UPLOAD_SIZE + 1))
         self.assert_rejected(response, 'taille maximale autorisée (5 Mo)')
 
     def test_file_at_size_limit_is_accepted(self):
         """Un fichier d'exactement 5 Mo est accepté."""
-        self.assertRedirects(self.upload('limite.pdf', b'0' * MAX_UPLOAD_SIZE), self.url)
+        self.assertRedirects(self.upload('limite.pdf', padded_pdf(MAX_UPLOAD_SIZE)), self.url)
 
     def test_invalid_document_type_is_rejected(self):
         """Un type de document hors des choix autorisés est refusé."""
@@ -206,6 +221,39 @@ class DocumentUploadValidationTests(TestCase):
     def test_missing_file_is_rejected(self):
         """Le formulaire sans fichier affiche un message clair."""
         self.assert_rejected(self.upload(None), 'Veuillez sélectionner un fichier')
+
+    def test_real_files_are_accepted(self):
+        """Un vrai PDF, un vrai PNG et un vrai JPEG (.jpg et .jpeg) sont acceptés."""
+        files = {
+            'vrai.pdf': b'%PDF-1.7\n1 0 obj\n<< >>\nendobj\ntrailer\n<< >>\n%%EOF\n',
+            'vrai.png': image_bytes('PNG'),
+            'vrai.jpg': image_bytes('JPEG'),
+            'vrai.jpeg': image_bytes('JPEG'),
+        }
+        for name, content in files.items():
+            with self.subTest(name=name):
+                self.assertRedirects(self.upload(name, content), self.url)
+        self.assertEqual(Document.objects.filter(appointment=self.appointment).count(), 4)
+
+    def test_fake_files_are_rejected(self):
+        """Un contenu qui ne correspond pas à l'extension est refusé avec un message clair."""
+        fakes = {
+            'texte.pdf': (b'Ceci est un simple fichier texte', 'PDF'),
+            'programme.pdf': (b'MZ\x90\x00\x03\x00\x00\x00', 'PDF'),
+            'script.pdf': (b'#!/bin/sh\nrm -rf /\n', 'PDF'),
+            'image_png.jpg': (image_bytes('PNG'), 'JPEG'),
+            'pdf_renomme.png': (b'%PDF-1.4\n', 'PNG'),
+        }
+        for name, (content, label) in fakes.items():
+            with self.subTest(name=name):
+                self.assert_rejected(
+                    self.upload(name, content),
+                    f"ce n&#x27;est pas un vrai fichier {label}",
+                )
+
+    def test_empty_file_is_rejected(self):
+        """Un fichier vide est refusé par Django avant même la vérification de signature."""
+        self.assert_rejected(self.upload('vide.pdf', b''), 'est vide')
 
     def test_other_patient_cannot_upload(self):
         """Un autre patient ne peut pas déposer sur ce rendez-vous (404)."""

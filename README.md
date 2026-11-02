@@ -132,8 +132,10 @@ du rendez-vous ou code), son fichier est aussi supprimé du stockage, une fois l
 en base validée.
 
 **Validation.** Chaque dépôt est contrôlé côté serveur (l'attribut HTML `accept` ne suffit
-pas) : formats **PDF, JPG, JPEG, PNG** uniquement, **5 Mo maximum**, et type de document
-limité aux choix proposés. Les erreurs s'affichent en français dans le formulaire.
+pas) : formats **PDF, JPG, JPEG, PNG** uniquement, **5 Mo maximum**, **contenu conforme à
+l'extension** (les premiers octets du fichier sont comparés à la signature PDF, PNG ou JPEG :
+un texte ou un exécutable renommé en `.pdf` est refusé) et type de document limité aux
+choix proposés. Les erreurs s'affichent en français dans le formulaire.
 
 **Contrôle d'accès.** Les liens vers les documents passent par la vue
 `appointments/documents/<id>/download/`, qui :
