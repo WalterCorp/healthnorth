@@ -4,14 +4,15 @@ import mimetypes
 import os
 
 from django.http import JsonResponse, FileResponse, Http404
-from datetime import datetime
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.core.exceptions import ValidationError
 from django.core.files.storage import FileSystemStorage
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
-from .forms import DocumentUploadForm
+from django import forms
+from .forms import AppointmentDateField, AppointmentEditForm, AppointmentForm, DocumentUploadForm
 from .models import Appointment, Specialist, Specialty, ExamType, Clinic, Document
 
 # Types de fichiers affichés directement dans le navigateur (stockage local) —
@@ -40,26 +41,18 @@ def appointment_new(request):
     exam_types = ExamType.objects.all()  # pylint: disable=no-member
 
     if request.method == 'POST':
-        region = request.POST.get('region')
-        city = request.POST.get('city')
-        clinic_id = request.POST.get('clinic')
-        specialist_id = request.POST.get('specialist')
-        exam_type_id = request.POST.get('exam_type')
-        date = request.POST.get('date')
-        notes = request.POST.get('notes', '').strip()
-
-        request.session['appointment_data'] = {
-            'region': region,
-            'city': city,
-            'clinic_id': clinic_id,
-            'specialist_id': specialist_id,
-            'exam_type_id': exam_type_id,
-            'date': date,
-            'notes': notes,
-        }
-        return redirect('appointment_confirm')
+        # Validation côté serveur : champs obligatoires, format de date, date future
+        form = AppointmentForm(request.POST)
+        if form.is_valid():
+            # Seules des données validées sont conservées en session jusqu'à la confirmation
+            request.session['appointment_data'] = form.session_data()
+            return redirect('appointment_confirm')
+    else:
+        form = AppointmentForm()
 
     return render(request, 'appointments/new.html', {
+        # Formulaire (avec ses éventuelles erreurs de validation)
+        'form': form,
         'regions': regions,
         'exam_types': exam_types,
         'now': timezone.now().strftime('%Y-%m-%dT%H:%M'),
@@ -75,35 +68,41 @@ def appointment_confirm(request):
         messages.error(request, 'Veuillez d\'abord remplir le formulaire.')
         return redirect('appointment_new')
 
-    specialist = get_object_or_404(Specialist, id=appointment_data['specialist_id'])
-    exam_type = get_object_or_404(ExamType, id=appointment_data['exam_type_id'])
-    clinic = get_object_or_404(Clinic, id=appointment_data['clinic_id'])
+    # Revalidation : les données en session peuvent être devenues invalides
+    # (date passée entre-temps, ancien format de session, spécialiste supprimé…)
+    form = AppointmentForm(appointment_data)
+    if not form.is_valid():
+        del request.session['appointment_data']
+        for errors in form.errors.values():
+            for error in errors:
+                messages.error(request, error)
+        return redirect('appointment_new')
+    data = form.cleaned_data
 
     if request.method == 'POST':
         # Crée le rendez-vous en base
         appointment = Appointment.objects.create(  # pylint: disable=no-member
             patient=request.user,
-            specialist=specialist,
-            exam_type=exam_type,
-            clinic=clinic,
-            date=appointment_data['date'],
-            notes=appointment_data['notes'],
+            specialist=data['specialist'],
+            exam_type=data['exam_type'],
+            clinic=data['clinic'],
+            date=data['date'],
+            notes=data['notes'],
         )
         del request.session['appointment_data']
         messages.success(request, 'Rendez-vous confirmé ! Vous pouvez déposer vos documents.')
         # Redirige vers la page de dépôt de documents au lieu de la liste
         return redirect('appointment_documents', appointment_id=appointment.id)
 
-    date_formatee = datetime.strptime(
-        appointment_data['date'], '%Y-%m-%dT%H:%M'
-    ).strftime('%d/%m/%Y %H:%M')
+    # Date affichée à l'heure locale (Europe/Paris)
+    date_formatee = timezone.localtime(data['date']).strftime('%d/%m/%Y %H:%M')
 
     return render(request, 'appointments/confirm.html', {
-        'specialist': specialist,
-        'exam_type': exam_type,
-        'clinic': clinic,
+        'specialist': data['specialist'],
+        'exam_type': data['exam_type'],
+        'clinic': data['clinic'],
         'date': date_formatee,
-        'notes': appointment_data['notes'],
+        'notes': data['notes'],
     })
 
 
@@ -271,24 +270,49 @@ def appointment_edit(request, appointment_id):
         return redirect('appointment_list')
 
     if request.method == 'POST':
-        date = request.POST.get('date')
-        notes = request.POST.get('notes', '').strip()
-        if date:
-            appointment.date = date
-            appointment.notes = notes
-            appointment.save()
+        # Validation côté serveur : date obligatoire, format valide, date future
+        form = AppointmentEditForm(request.POST, instance=appointment)
+        if form.is_valid():
+            form.save()
             messages.success(request, 'Rendez-vous modifié avec succès.')
             return redirect('appointment_list')
-        else:
-            messages.error(request, 'Veuillez saisir une date valide.')
+    else:
+        form = AppointmentEditForm(instance=appointment)
 
     return render(request, 'appointments/edit.html', {
         'appointment': appointment,
+        # Formulaire (avec ses éventuelles erreurs de validation)
+        'form': form,
         'now': timezone.now().strftime('%Y-%m-%dT%H:%M'),
     })
 
 
 import json
+
+# Noms des champs dans l'API JSON (les formulaires utilisent les noms sans _id)
+API_FIELD_NAMES = {'specialist': 'specialist_id', 'clinic': 'clinic_id', 'exam_type': 'exam_type_id'}
+
+
+def parse_json_body(request):
+    """Lit le corps JSON de la requête ; renvoie (données, None) ou (None, réponse 400)."""
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return None, JsonResponse({'error': 'Corps de requête JSON invalide.'}, status=400)
+    if not isinstance(data, dict):
+        return None, JsonResponse(
+            {'error': 'Le corps de la requête doit être un objet JSON.'}, status=400
+        )
+    return data, None
+
+
+def api_validation_error(errors):
+    """Réponse 400 avec le détail des erreurs par champ, noms de l'API."""
+    return JsonResponse({
+        'error': 'Données invalides.',
+        'errors': {API_FIELD_NAMES.get(name, name): list(messages_) for name, messages_ in errors.items()},
+    }, status=400)
+
 
 @login_required
 def api_appointments(request):
@@ -320,20 +344,27 @@ def api_appointments(request):
         return JsonResponse(result, safe=False)
 
     if request.method == 'POST':
-        # Crée un nouveau rendez-vous
-        try:
-            data = json.loads(request.body)
-            appointment = Appointment.objects.create(  # pylint: disable=no-member
-                patient=request.user,
-                specialist_id=data['specialist_id'],
-                exam_type_id=data.get('exam_type_id'),
-                clinic_id=data.get('clinic_id'),
-                date=data['date'],
-                notes=data.get('notes', ''),
-            )
-            return JsonResponse({'id': appointment.id, 'status': 'created'}, status=201)
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=400)
+        # Crée un nouveau rendez-vous — mêmes règles que le formulaire web
+        data, error = parse_json_body(request)
+        if error:
+            return error
+        form = AppointmentForm({
+            'specialist': data.get('specialist_id'),
+            'clinic': data.get('clinic_id'),
+            'exam_type': data.get('exam_type_id'),
+            'date': data.get('date'),
+            'notes': data.get('notes', ''),
+        })
+        # Contrat de l'API conservé : clinique et type d'examen restent facultatifs
+        form.fields['clinic'].required = False
+        form.fields['exam_type'].required = False
+        if not form.is_valid():
+            return api_validation_error(form.errors)
+        appointment = Appointment.objects.create(  # pylint: disable=no-member
+            patient=request.user,
+            **form.cleaned_data,
+        )
+        return JsonResponse({'id': appointment.id, 'status': 'created'}, status=201)
 
     return JsonResponse({'error': 'Méthode non autorisée'}, status=405)
 
@@ -360,19 +391,28 @@ def api_appointment_detail(request, appointment_id):
         return JsonResponse(result)
 
     if request.method == 'PUT':
-        # Modifie la date et les notes du rendez-vous
-        try:
-            data = json.loads(request.body)
-            if 'date' in data:
-                appointment.date = data['date']
-            if 'notes' in data:
-                appointment.notes = data['notes']
-            if 'status' in data:
+        # Modifie la date, les notes et/ou le statut — seuls les champs fournis sont validés
+        data, error = parse_json_body(request)
+        if error:
+            return error
+        errors = {}
+        if 'date' in data:
+            # Mêmes règles que le formulaire web : obligatoire, format valide, date future
+            try:
+                appointment.date = AppointmentDateField().clean(data['date'])
+            except ValidationError as exc:
+                errors['date'] = exc.messages
+        if 'notes' in data:
+            appointment.notes = forms.CharField(required=False).clean(data['notes'])
+        if 'status' in data:
+            if data['status'] in dict(Appointment.STATUS_CHOICES):
                 appointment.status = data['status']
-            appointment.save()
-            return JsonResponse({'id': appointment.id, 'status': 'updated'})
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=400)
+            else:
+                errors['status'] = ['Statut invalide : valeurs possibles pending, confirmed, cancelled.']
+        if errors:
+            return api_validation_error(errors)
+        appointment.save()
+        return JsonResponse({'id': appointment.id, 'status': 'updated'})
 
     if request.method == 'DELETE':
         # Annule le rendez-vous (soft delete — on passe en cancelled)

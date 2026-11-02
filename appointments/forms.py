@@ -4,7 +4,8 @@ import os
 
 from django import forms
 from django.core.validators import FileExtensionValidator
-from .models import Document
+from django.utils import timezone
+from .models import Appointment, Clinic, Document, ExamType, Specialist
 
 # Extensions autorisées pour les documents médicaux
 ALLOWED_EXTENSIONS = ['pdf', 'jpg', 'jpeg', 'png']
@@ -83,3 +84,80 @@ class DocumentUploadForm(forms.ModelForm):
                 "et déposez l'original."
             )
         return file
+
+
+# Messages d'erreur de la date d'un rendez-vous (formulaires web et API)
+DATE_REQUIRED_MESSAGE = "Veuillez indiquer la date et l'heure du rendez-vous."
+DATE_INVALID_MESSAGE = (
+    "Date et heure invalides : format attendu AAAA-MM-JJTHH:MM (exemple : 2027-05-12T14:30)."
+)
+DATE_PAST_MESSAGE = "La date du rendez-vous doit être dans le futur."
+
+
+class AppointmentDateField(forms.DateTimeField):
+    """Date et heure d'un rendez-vous : obligatoire, format valide et dans le futur.
+
+    Accepte le format du champ datetime-local (2027-05-12T14:30) et l'ISO 8601
+    de l'API ; la date est interprétée dans le fuseau du site (Europe/Paris).
+    """
+
+    default_error_messages = {
+        'required': DATE_REQUIRED_MESSAGE,
+        'invalid': DATE_INVALID_MESSAGE,
+    }
+
+    def validate(self, value):
+        """Refuse une date passée (le contrôle « min » du navigateur se contourne)."""
+        super().validate(value)
+        if value is not None and value <= timezone.now():
+            raise forms.ValidationError(DATE_PAST_MESSAGE, code='past_date')
+
+
+class AppointmentForm(forms.Form):
+    """Prise de rendez-vous, validée côté serveur (formulaire web et API POST)."""
+
+    clinic = forms.ModelChoiceField(
+        queryset=Clinic.objects.all(),  # pylint: disable=no-member
+        error_messages={
+            'required': 'Veuillez choisir une clinique.',
+            'invalid_choice': 'Clinique introuvable.',
+        },
+    )
+    specialist = forms.ModelChoiceField(
+        queryset=Specialist.objects.all(),  # pylint: disable=no-member
+        error_messages={
+            'required': 'Veuillez choisir un spécialiste.',
+            'invalid_choice': 'Spécialiste introuvable.',
+        },
+    )
+    exam_type = forms.ModelChoiceField(
+        queryset=ExamType.objects.all(),  # pylint: disable=no-member
+        error_messages={
+            'required': "Veuillez choisir un type d'examen.",
+            'invalid_choice': "Type d'examen introuvable.",
+        },
+    )
+    date = AppointmentDateField()
+    notes = forms.CharField(required=False)
+
+    def session_data(self):
+        """Données validées, sérialisables en session, pour l'écran de confirmation."""
+        data = self.cleaned_data
+        return {
+            'clinic': data['clinic'].pk,
+            'specialist': data['specialist'].pk,
+            'exam_type': data['exam_type'].pk,
+            'date': data['date'].isoformat(),
+            'notes': data['notes'].strip(),
+        }
+
+
+class AppointmentEditForm(forms.ModelForm):
+    """Modification d'un rendez-vous (date et notes), validée côté serveur."""
+
+    class Meta:
+        """Options du formulaire."""
+
+        model = Appointment
+        fields = ['date', 'notes']
+        field_classes = {'date': AppointmentDateField}

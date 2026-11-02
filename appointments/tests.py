@@ -2,6 +2,7 @@
 
 # pylint: disable=no-member
 import io
+import json
 import shutil
 import tempfile
 from datetime import datetime, timedelta, timezone as dt_timezone
@@ -17,7 +18,7 @@ from django.utils import timezone
 from PIL import Image
 
 from .forms import MAX_UPLOAD_SIZE
-from .models import Appointment, Document, Specialist, Specialty
+from .models import Appointment, Clinic, Document, ExamType, Specialist, Specialty
 
 User = get_user_model()
 
@@ -499,3 +500,221 @@ class ErrorMessageDisplayTests(TestCase):
         self.assertContains(page, 'class="alert alert-error')
         self.assertContains(page, 'bi-exclamation-triangle-fill')
         self.assertNotContains(page, 'bi-check-circle-fill')
+
+
+class AppointmentValidationTests(TestCase):
+    """Validation côté serveur de la prise et de la modification de rendez-vous (web et API)."""
+
+    @classmethod
+    def setUpTestData(cls):
+        """Crée une clinique, un spécialiste, un type d'examen, un patient et un rendez-vous."""
+        specialty = Specialty.objects.create(name='Cardiologie', duration_minutes=30)
+        cls.exam_type = ExamType.objects.create(name='ECG', duration_minutes=30, specialty=specialty)
+        cls.clinic = Clinic.objects.create(
+            name='Clinique Test', address='1 rue Test', city='Lille',
+            department='Nord', region=Clinic.REGION_CHOICES[0][0],
+        )
+        cls.patient = User.objects.create_user('val_patient', password='pw-test-21')
+        cls.specialist = Specialist.objects.create(
+            user=User.objects.create_user('val_doctor', password='pw-test-22'),
+            specialty=specialty,
+        )
+        cls.appointment = Appointment.objects.create(
+            patient=cls.patient, specialist=cls.specialist, clinic=cls.clinic,
+            exam_type=cls.exam_type, date=timezone.now() + timedelta(days=10), notes='initial',
+        )
+        cls.future = (timezone.localtime() + timedelta(days=30)).strftime('%Y-%m-%dT%H:%M')
+        cls.past = (timezone.localtime() - timedelta(days=1)).strftime('%Y-%m-%dT%H:%M')
+        cls.new_url = reverse('appointment_new')
+        cls.edit_url = reverse('appointment_edit', args=[cls.appointment.pk])
+        cls.api_url = reverse('api_appointments')
+        cls.api_detail_url = reverse('api_appointment_detail', args=[cls.appointment.pk])
+
+    def setUp(self):
+        """Connecte le patient avant chaque test."""
+        self.client.force_login(self.patient)
+
+    # --- Prise de rendez-vous (formulaire web) ---
+
+    def booking_data(self, **overrides):
+        """Données valides du formulaire de prise de rendez-vous, modifiables."""
+        data = {'clinic': self.clinic.pk, 'specialist': self.specialist.pk,
+                'exam_type': self.exam_type.pk, 'date': self.future, 'notes': 'RAS'}
+        data.update(overrides)
+        return data
+
+    def test_booking_valid_goes_to_confirmation_then_creates(self):
+        """Données valides : confirmation affichée (date à l'heure de Paris), puis rendez-vous créé."""
+        response = self.client.post(self.new_url, self.booking_data())
+        self.assertRedirects(response, reverse('appointment_confirm'))
+        confirm = self.client.get(reverse('appointment_confirm'))
+        self.assertEqual(confirm.status_code, 200)
+        expected = datetime.strptime(self.future, '%Y-%m-%dT%H:%M').strftime('%d/%m/%Y %H:%M')
+        self.assertContains(confirm, expected)
+        before = Appointment.objects.count()
+        self.client.post(reverse('appointment_confirm'))
+        self.assertEqual(Appointment.objects.count(), before + 1)
+        created = Appointment.objects.latest('pk')
+        self.assertEqual(timezone.localtime(created.date).strftime('%Y-%m-%dT%H:%M'), self.future)
+
+    def assert_booking_rejected(self, data, message):
+        """Le formulaire est réaffiché (200) avec le message, sans passer à la confirmation."""
+        response = self.client.post(self.new_url, data)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, message)
+        self.assertNotIn('appointment_data', self.client.session)
+
+    def test_booking_empty_date_rejected(self):
+        """Date vide : message clair, plus d'erreur 500."""
+        self.assert_booking_rejected(self.booking_data(date=''), "Veuillez indiquer la date et l&#x27;heure")
+
+    def test_booking_malformed_date_rejected(self):
+        """Date mal formée ou impossible : message clair."""
+        for value in ('pas-une-date', '2027-13-45T10:00', '31/02/2027 10:00'):
+            with self.subTest(date=value):
+                self.assert_booking_rejected(self.booking_data(date=value), 'Date et heure invalides')
+
+    def test_booking_past_date_rejected(self):
+        """Date passée : refusée côté serveur (le « min » du navigateur se contourne)."""
+        self.assert_booking_rejected(self.booking_data(date=self.past), 'doit être dans le futur')
+
+    def test_booking_missing_fields_rejected(self):
+        """Champs vides : un message par champ, plus d'erreur 404."""
+        response = self.client.post(self.new_url, {})
+        self.assertEqual(response.status_code, 200)
+        for message in ('Veuillez choisir une clinique', 'Veuillez choisir un spécialiste',
+                        "Veuillez choisir un type d&#x27;examen", "Veuillez indiquer la date"):
+            self.assertContains(response, message)
+
+    def test_booking_unknown_ids_rejected(self):
+        """Identifiants inexistants ou non numériques : message clair, plus d'erreur 404."""
+        response = self.client.post(self.new_url, self.booking_data(specialist=999999, clinic='abc'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Spécialiste introuvable')
+        self.assertContains(response, 'Clinique introuvable')
+
+    def test_confirmation_with_outdated_session_redirects(self):
+        """Données de session devenues invalides (date passée, ancien format) : retour au formulaire."""
+        for stale in ({**self.booking_data(), 'date': self.past},
+                      {'specialist_id': '1', 'date': ''}):
+            with self.subTest(session=stale):
+                session = self.client.session
+                session['appointment_data'] = stale
+                session.save()
+                response = self.client.get(reverse('appointment_confirm'), follow=True)
+                self.assertRedirects(response, self.new_url)
+                self.assertNotIn('appointment_data', self.client.session)
+
+    # --- Modification de rendez-vous (formulaire web) ---
+
+    def assert_edit_rejected(self, date, message):
+        """La modification est refusée avec le message, la date en base est inchangée."""
+        original = Appointment.objects.get(pk=self.appointment.pk).date
+        response = self.client.post(self.edit_url, {'date': date, 'notes': 'modifié'})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, message)
+        self.assertEqual(Appointment.objects.get(pk=self.appointment.pk).date, original)
+
+    def test_edit_empty_date_rejected(self):
+        """Modification avec une date vide : refusée."""
+        self.assert_edit_rejected('', "Veuillez indiquer la date et l&#x27;heure")
+
+    def test_edit_malformed_date_rejected(self):
+        """Modification avec une date mal formée : refusée, plus d'erreur 500."""
+        self.assert_edit_rejected('pas-une-date', 'Date et heure invalides')
+
+    def test_edit_past_date_rejected(self):
+        """Modification avec une date passée : refusée."""
+        self.assert_edit_rejected(self.past, 'doit être dans le futur')
+
+    def test_edit_valid_date_saved(self):
+        """Modification valide : enregistrée, retour à la liste."""
+        response = self.client.post(self.edit_url, {'date': self.future, 'notes': 'nouvelle note'})
+        self.assertRedirects(response, reverse('appointment_list'))
+        updated = Appointment.objects.get(pk=self.appointment.pk)
+        self.assertEqual(timezone.localtime(updated.date).strftime('%Y-%m-%dT%H:%M'), self.future)
+        self.assertEqual(updated.notes, 'nouvelle note')
+
+    # --- API REST ---
+
+    def api(self, method, url, payload):
+        """Envoie une requête JSON à l'API et renvoie (code, corps décodé)."""
+        body = payload if isinstance(payload, str) else json.dumps(payload)
+        response = getattr(self.client, method)(url, body, content_type='application/json')
+        return response.status_code, response.json()
+
+    def api_payload(self, **overrides):
+        """Corps valide pour la création par l'API (même forme que le test Bruno)."""
+        data = {'specialist_id': self.specialist.pk, 'clinic_id': self.clinic.pk,
+                'exam_type_id': self.exam_type.pk, 'date': '2099-06-15T10:00:00',
+                'notes': 'Test création via API'}
+        data.update(overrides)
+        return data
+
+    def test_api_post_valid_created(self):
+        """POST valide (date lointaine, comme dans Bruno) : 201."""
+        code, body = self.api('post', self.api_url, self.api_payload())
+        self.assertEqual(code, 201)
+        self.assertEqual(body['status'], 'created')
+
+    def test_api_post_invalid_dates_rejected(self):
+        """POST avec date absente, vide, mal formée ou passée : 400 et message JSON par champ."""
+        cases = {
+            'absente': (self.api_payload(date=None), "Veuillez indiquer la date"),
+            'vide': (self.api_payload(date=''), "Veuillez indiquer la date"),
+            'mal formée': (self.api_payload(date='2027-13-45T10:00'), 'Date et heure invalides'),
+            'passée': (self.api_payload(date='2020-01-01T10:00:00'), 'doit être dans le futur'),
+        }
+        for label, (payload, message) in cases.items():
+            with self.subTest(cas=label):
+                if label == 'absente':
+                    payload.pop('date')
+                code, body = self.api('post', self.api_url, payload)
+                self.assertEqual(code, 400)
+                self.assertEqual(body['error'], 'Données invalides.')
+                self.assertIn(message, body['errors']['date'][0])
+
+    def test_api_post_missing_or_unknown_specialist_rejected(self):
+        """POST sans spécialiste ou avec un spécialiste inexistant : 400, nom de champ de l'API."""
+        payload = self.api_payload()
+        payload.pop('specialist_id')
+        code, body = self.api('post', self.api_url, payload)
+        self.assertEqual(code, 400)
+        self.assertIn('specialist_id', body['errors'])
+        code, body = self.api('post', self.api_url, self.api_payload(specialist_id=999999))
+        self.assertEqual(code, 400)
+        self.assertEqual(body['errors']['specialist_id'], ['Spécialiste introuvable.'])
+
+    def test_api_post_invalid_json_rejected(self):
+        """Corps qui n'est pas un objet JSON : 400 avec un message clair."""
+        code, body = self.api('post', self.api_url, '{pas du json')
+        self.assertEqual((code, body['error']), (400, 'Corps de requête JSON invalide.'))
+        code, body = self.api('post', self.api_url, '[1, 2]')
+        self.assertEqual(code, 400)
+
+    def test_api_put_invalid_dates_rejected(self):
+        """PUT avec date vide, mal formée ou passée : 400, rendez-vous inchangé."""
+        original = Appointment.objects.get(pk=self.appointment.pk).date
+        for value, message in (('', 'Veuillez indiquer la date'), ('pas-une-date', 'Date et heure invalides'),
+                               ('2020-01-01T10:00:00', 'doit être dans le futur')):
+            with self.subTest(date=value):
+                code, body = self.api('put', self.api_detail_url, {'date': value, 'notes': 'x'})
+                self.assertEqual(code, 400)
+                self.assertIn(message, body['errors']['date'][0])
+        appointment = Appointment.objects.get(pk=self.appointment.pk)
+        self.assertEqual((appointment.date, appointment.notes), (original, 'initial'))
+
+    def test_api_put_valid_and_partial_updates(self):
+        """PUT valide (date future) : 200 ; PUT sans date sur un rendez-vous passé : 200."""
+        code, _ = self.api('put', self.api_detail_url, {'date': '2099-06-15T10:00:00'})
+        self.assertEqual(code, 200)
+        # Rendez-vous passé : modifier seulement le statut et les notes reste possible (test Bruno PUT)
+        Appointment.objects.filter(pk=self.appointment.pk).update(date=timezone.now() - timedelta(days=5))
+        code, body = self.api('put', self.api_detail_url, {'status': 'confirmed', 'notes': 'Test modification via API'})
+        self.assertEqual((code, body['status']), (200, 'updated'))
+
+    def test_api_put_invalid_status_rejected(self):
+        """PUT avec un statut hors des valeurs autorisées : 400, plus d'erreur 500."""
+        code, body = self.api('put', self.api_detail_url, {'status': 'x' * 50})
+        self.assertEqual(code, 400)
+        self.assertIn('status', body['errors'])

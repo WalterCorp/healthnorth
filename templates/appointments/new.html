@@ -12,6 +12,7 @@
             <div class="card-body p-4">
                 <form method="post">
                     {% csrf_token %}
+                    {% include 'includes/form_errors.html' %}
 
                     <div class="mb-3">
                         <label class="form-label"><i class="bi bi-geo-alt me-1 text-muted"></i>Région</label>
@@ -53,12 +54,13 @@
 
                     <div class="mb-3">
                         <label class="form-label"><i class="bi bi-calendar2-event me-1 text-muted"></i>Date et heure</label>
-                        <input type="datetime-local" name="date" class="form-control" min="{{ now }}" required>
+                        <input type="datetime-local" name="date" class="form-control{% if form.date.errors %} is-invalid{% endif %}" min="{{ now }}"
+                               value="{{ form.date.value|default_if_none:'' }}" required>
                     </div>
 
                     <div class="mb-4">
                         <label class="form-label"><i class="bi bi-chat-text me-1 text-muted"></i>Notes (optionnel)</label>
-                        <textarea name="notes" class="form-control" rows="3" placeholder="Informations utiles pour le médecin..."></textarea>
+                        <textarea name="notes" class="form-control" rows="3" placeholder="Informations utiles pour le médecin...">{{ form.notes.value|default_if_none:'' }}</textarea>
                     </div>
 
                     <button type="submit" class="btn btn-primary w-100">
