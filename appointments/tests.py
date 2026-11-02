@@ -4,7 +4,7 @@
 import io
 import shutil
 import tempfile
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone as dt_timezone
 from unittest import mock
 
 from django.contrib.auth import get_user_model
@@ -425,3 +425,53 @@ class DocumentFileDeletionTests(TestCase):
                     document.delete()
         self.assertIn('Impossible de supprimer le fichier', logs.output[0])
         self.assertFalse(Document.objects.filter(pk=pk).exists())
+
+
+@override_settings(MEDIA_ROOT=TEST_MEDIA_ROOT, STORAGES=TEST_STORAGES)
+class LocalTimezoneDisplayTests(TestCase):
+    """Les heures de rendez-vous s'affichent à l'heure de Paris, pas en UTC."""
+
+    @classmethod
+    def setUpTestData(cls):
+        """Crée un rendez-vous en hiver (UTC+1) et un en été (UTC+2), avec un document."""
+        specialty = Specialty.objects.create(name='Cardiologie', duration_minutes=30)
+        patient = User.objects.create_user('tz_patient', password='pw-test-16',
+                                           first_name='Jean', last_name='Dupont')
+        doctor = Specialist.objects.create(
+            user=User.objects.create_user('tz_doctor', password='pw-test-17'),
+            specialty=specialty,
+        )
+        # 11:00 UTC en mars = 12:00 à Paris ; 10:00 UTC en juillet = 12:00 à Paris
+        cls.winter = Appointment.objects.create(
+            patient=patient, specialist=doctor,
+            date=datetime(2027, 3, 12, 11, 0, tzinfo=dt_timezone.utc),
+        )
+        cls.summer = Appointment.objects.create(
+            patient=patient, specialist=doctor,
+            date=datetime(2027, 7, 1, 10, 0, tzinfo=dt_timezone.utc),
+        )
+        document = Document(appointment=cls.winter, document_type='ordonnance')
+        document.file.save('ordonnance.pdf', ContentFile(b'%PDF-1.4'), save=True)
+        cls.superuser = User.objects.create_superuser('tz_root', password='pw-test-18')
+
+    def test_str_uses_paris_time(self):
+        """__str__ affiche 12:00 (heure de Paris) en hiver comme en été."""
+        self.assertIn('12/03/2027 12:00', str(self.winter))
+        self.assertIn('01/07/2027 12:00', str(self.summer))
+        self.assertNotIn('11:00', str(self.winter))
+        self.assertNotIn('+00:00', str(self.winter))
+
+    def test_document_admin_uses_paris_time(self):
+        """La colonne Rendez-vous de l'admin des documents est à l'heure de Paris."""
+        self.client.force_login(self.superuser)
+        page = self.client.get(reverse('admin:appointments_document_changelist'))
+        self.assertContains(page, '12/03/2027 12:00')
+        self.assertNotContains(page, '12/03/2027 11:00')
+
+    def test_appointment_admin_uses_paris_time(self):
+        """La liste des rendez-vous de l'admin affiche aussi 12:00."""
+        self.client.force_login(self.superuser)
+        page = self.client.get(reverse('admin:appointments_appointment_changelist'))
+        self.assertContains(page, '12:00')
+        self.assertNotContains(page, '11:00')
+        self.assertNotContains(page, '10:00')

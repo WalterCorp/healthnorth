@@ -2,6 +2,7 @@
 
 from django.contrib import admin
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.html import format_html
 from .models import Specialty, Specialist, Appointment, ExamType, Clinic, Document
 
@@ -155,8 +156,9 @@ class DocumentAdmin(admin.ModelAdmin):
 
     @admin.display(description='Rendez-vous')
     def get_appointment(self, obj):
-        """Retourne la date et le spécialiste du rendez-vous."""
-        return f"{obj.appointment.date:%d/%m/%Y %H:%M} — {obj.appointment.specialist}"
+        """Retourne la date (heure locale Europe/Paris) et le spécialiste du rendez-vous."""
+        local_date = timezone.localtime(obj.appointment.date)
+        return f"{local_date:%d/%m/%Y %H:%M} — {obj.appointment.specialist}"
 
     @admin.display(description='Type')
     def get_document_type(self, obj):

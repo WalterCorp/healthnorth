@@ -4,6 +4,7 @@ import os
 import uuid
 
 from django.db import models
+from django.utils import timezone
 from accounts.models import User
 
 
@@ -150,8 +151,10 @@ class Appointment(models.Model):
         verbose_name_plural = "Rendez-vous"
 
     def __str__(self) -> str:
-        """Retourne une représentation du rendez-vous."""
-        return str(f"{self.patient} - {self.specialist} - {self.date}")
+        """Retourne une représentation du rendez-vous, date à l'heure locale (Europe/Paris)."""
+        # La date est stockée en UTC (USE_TZ = True) : conversion avant affichage
+        local_date = timezone.localtime(self.date)
+        return str(f"{self.patient} - {self.specialist} - {local_date:%d/%m/%Y %H:%M}")
 
 
 # Document médical lié à un rendez-vous
