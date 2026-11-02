@@ -105,12 +105,54 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+# Stockage des documents médicaux sur Cloudflare R2 (compatible S3)
+# Les 4 variables vont ensemble : toutes renseignées → R2, toutes vides → disque local
+R2_SETTINGS = {
+    name: os.environ.get(name, '')
+    for name in ('R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'R2_BUCKET_NAME', 'R2_ENDPOINT_URL')
+}
+R2_MISSING = [name for name, value in R2_SETTINGS.items() if not value]
+
+if not R2_MISSING:
+    DEFAULT_STORAGE = {
+        'BACKEND': 'storages.backends.s3.S3Storage',
+        'OPTIONS': {
+            'access_key': R2_SETTINGS['R2_ACCESS_KEY_ID'],
+            'secret_key': R2_SETTINGS['R2_SECRET_ACCESS_KEY'],
+            'bucket_name': R2_SETTINGS['R2_BUCKET_NAME'],
+            # Endpoint juridiction EU : https://<ACCOUNT_ID>.eu.r2.cloudflarestorage.com
+            'endpoint_url': R2_SETTINGS['R2_ENDPOINT_URL'],
+            # R2 attend la région « auto » et la signature v4
+            'region_name': 'auto',
+            'signature_version': 's3v4',
+            # Bucket privé : aucune ACL publique, pas de domaine public
+            'default_acl': None,
+            'custom_domain': None,
+            # Accès uniquement via des URLs signées valables 5 minutes
+            'querystring_auth': True,
+            'querystring_expire': 300,
+            # Jamais d'écrasement : un nom déjà pris reçoit un suffixe
+            'file_overwrite': False,
+            # Préfixe dans le bucket pour séparer local et production
+            'location': os.environ.get('R2_LOCATION', ''),
+        },
+    }
+elif len(R2_MISSING) < len(R2_SETTINGS):
+    # Configuration partielle : on refuse de retomber silencieusement sur le disque
+    # (sur Render, il est effacé à chaque redéploiement)
+    raise ImproperlyConfigured(
+        "Configuration R2 incomplète, variables manquantes : " + ', '.join(R2_MISSING)
+    )
+else:
+    # Aucune variable R2 : stockage sur le disque local (développement)
+    DEFAULT_STORAGE = {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    }
+
 # Stockages (réglage STORAGES, Django 4.2+ — remplace STATICFILES_STORAGE supprimé en 5.1)
 STORAGES = {
-    # Fichiers uploadés : disque local
-    'default': {
-        'BACKEND': 'django.core.files.storage.FileSystemStorage',
-    },
+    # Fichiers uploadés : R2 ou disque local selon la configuration ci-dessus
+    'default': DEFAULT_STORAGE,
     # WhiteNoise compresse et met en cache les fichiers statiques
     'staticfiles': {
         'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
