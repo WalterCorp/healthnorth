@@ -12,6 +12,7 @@
             <div class="card-body p-4">
                 <form method="post">
                     {% csrf_token %}
+                    {% include 'includes/non_field_errors.html' %}
                     {% for field in form %}
                         <div class="mb-3">
                             <label class="form-label">{{ field.label }}</label>

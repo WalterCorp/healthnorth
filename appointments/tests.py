@@ -475,3 +475,27 @@ class LocalTimezoneDisplayTests(TestCase):
         self.assertContains(page, '12:00')
         self.assertNotContains(page, '11:00')
         self.assertNotContains(page, '10:00')
+
+
+class ErrorMessageDisplayTests(TestCase):
+    """Les messages d'erreur (messages.error) s'affichent en alerte rouge avec une icône d'erreur."""
+
+    def test_error_message_has_error_style_and_icon(self):
+        """Modifier un rendez-vous annulé affiche une alerte d'erreur, sans l'icône de succès."""
+        specialty = Specialty.objects.create(name='Radiologie', duration_minutes=30)
+        patient = User.objects.create_user('msg_patient', password='pw-test-19')
+        doctor = Specialist.objects.create(
+            user=User.objects.create_user('msg_doctor', password='pw-test-20'),
+            specialty=specialty,
+        )
+        appointment = Appointment.objects.create(
+            patient=patient, specialist=doctor, status='cancelled',
+            date=timezone.now() + timedelta(days=7),
+        )
+        self.client.force_login(patient)
+        page = self.client.get(reverse('appointment_edit', args=[appointment.pk]), follow=True)
+        self.assertContains(page, 'Impossible de modifier un rendez-vous annulé')
+        # .alert-error est stylée en rouge par la feuille de style du site (base.html)
+        self.assertContains(page, 'class="alert alert-error')
+        self.assertContains(page, 'bi-exclamation-triangle-fill')
+        self.assertNotContains(page, 'bi-check-circle-fill')
