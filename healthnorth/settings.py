@@ -100,15 +100,25 @@ USE_TZ = True
 STATIC_URL = 'static/'
 # Dossier où collectstatic rassemble tous les fichiers statiques pour la prod
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-# WhiteNoise compresse et met en cache les fichiers statiques
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# Fichiers media (uploads utilisateurs — ordonnances, certificats, etc.)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+# Stockages (réglage STORAGES, Django 4.2+ — remplace STATICFILES_STORAGE supprimé en 5.1)
+STORAGES = {
+    # Fichiers uploadés : disque local
+    'default': {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    },
+    # WhiteNoise compresse et met en cache les fichiers statiques
+    'staticfiles': {
+        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+    },
+}
 
 AUTH_USER_MODEL = 'accounts.User'
 
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/accounts/login/'
 LOGIN_URL = '/accounts/login/'
-
-# Fichiers media (uploads utilisateurs — ordonnances, certificats, etc.)
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
