@@ -4,10 +4,12 @@
 import shutil
 import tempfile
 from datetime import timedelta
+from unittest import mock
 
 from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import transaction
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -292,3 +294,86 @@ class DocumentAdminTests(TestCase):
         self.assertEqual(self.client.get(self.changelist).status_code, 403)
         self.assertEqual(self.client.get(self.change).status_code, 403)
         self.assertNotContains(self.client.get(reverse('admin:index')), 'Documents')
+
+
+@override_settings(MEDIA_ROOT=TEST_MEDIA_ROOT, STORAGES=TEST_STORAGES)
+class DocumentFileDeletionTests(TestCase):
+    """Suppression du fichier stocké quand un Document est supprimé (signal post_delete)."""
+
+    @classmethod
+    def setUpTestData(cls):
+        """Crée un patient, un spécialiste et une spécialité réutilisés par les tests."""
+        cls.specialty = Specialty.objects.create(name='Pédiatrie', duration_minutes=30)
+        cls.patient = User.objects.create_user('delete_patient', password='pw-test-14')
+        cls.doctor = Specialist.objects.create(
+            user=User.objects.create_user('delete_doctor', password='pw-test-15'),
+            specialty=cls.specialty,
+        )
+
+    def make_document(self):
+        """Crée un rendez-vous avec un document, et renvoie (rendez-vous, document)."""
+        appointment = Appointment.objects.create(
+            patient=self.patient, specialist=self.doctor,
+            date=timezone.now() + timedelta(days=7),
+        )
+        document = Document(appointment=appointment, document_type='ordonnance')
+        document.file.save('a_supprimer.pdf', ContentFile(b'%PDF-1.4'), save=True)
+        self.assertTrue(document.file.storage.exists(document.file.name))
+        return appointment, document
+
+    def test_direct_delete_removes_file(self):
+        """document.delete() supprime aussi le fichier, après le commit."""
+        _, document = self.make_document()
+        storage, name = document.file.storage, document.file.name
+        with self.captureOnCommitCallbacks(execute=True) as callbacks:
+            document.delete()
+            # Avant le commit, le fichier est toujours là
+            self.assertTrue(storage.exists(name))
+        self.assertEqual(len(callbacks), 1)
+        self.assertFalse(storage.exists(name))
+
+    def test_cascade_delete_from_appointment_removes_file(self):
+        """Supprimer le rendez-vous supprime ses documents et leurs fichiers."""
+        appointment, document = self.make_document()
+        storage, name, pk = document.file.storage, document.file.name, document.pk
+        with self.captureOnCommitCallbacks(execute=True):
+            appointment.delete()
+        self.assertFalse(Document.objects.filter(pk=pk).exists())
+        self.assertFalse(storage.exists(name))
+
+    def test_queryset_delete_removes_files(self):
+        """Une suppression en masse (queryset, action de l'admin) supprime chaque fichier."""
+        _, first = self.make_document()
+        _, second = self.make_document()
+        names = [first.file.name, second.file.name]
+        with self.captureOnCommitCallbacks(execute=True):
+            Document.objects.filter(pk__in=[first.pk, second.pk]).delete()
+        for name in names:
+            self.assertFalse(first.file.storage.exists(name))
+
+    def test_rolled_back_delete_keeps_file(self):
+        """Si la transaction est annulée, le document et son fichier sont conservés."""
+        _, document = self.make_document()
+        storage, name, pk = document.file.storage, document.file.name, document.pk
+        with self.captureOnCommitCallbacks(execute=True) as callbacks:
+            with self.assertRaises(RuntimeError):
+                with transaction.atomic():
+                    document.delete()
+                    raise RuntimeError('annulation simulée')
+        self.assertEqual(len(callbacks), 0)
+        # delete() remet document.pk à None : on vérifie avec l'identifiant mémorisé
+        self.assertTrue(Document.objects.filter(pk=pk).exists())
+        self.assertTrue(storage.exists(name))
+
+    def test_storage_error_is_logged_not_raised(self):
+        """Une erreur du stockage est journalisée et ne fait pas planter la suppression."""
+        _, document = self.make_document()
+        pk = document.pk
+        # default_storage est un objet paresseux : on simule l'erreur sur la classe réelle
+        with mock.patch('django.core.files.storage.FileSystemStorage.delete',
+                        side_effect=OSError('R2 indisponible')):
+            with self.assertLogs('appointments.signals', level='ERROR') as logs:
+                with self.captureOnCommitCallbacks(execute=True):
+                    document.delete()
+        self.assertIn('Impossible de supprimer le fichier', logs.output[0])
+        self.assertFalse(Document.objects.filter(pk=pk).exists())

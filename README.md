@@ -127,7 +127,9 @@ sont des données de santé : ils ne sont jamais accessibles par une URL publiqu
 `django-storages`, compatible S3) et non sur le disque de Render, qui est effacé à chaque
 redéploiement. Le bucket est **privé** (aucune ACL publique, aucun domaine public) et
 situé dans la **juridiction EU** : les données restent dans l'Union européenne.
-Un fichier existant n'est jamais écrasé.
+Un fichier existant n'est jamais écrasé. Quand un document est supprimé (admin, suppression
+du rendez-vous ou code), son fichier est aussi supprimé du stockage, une fois la suppression
+en base validée.
 
 **Validation.** Chaque dépôt est contrôlé côté serveur (l'attribut HTML `accept` ne suffit
 pas) : formats **PDF, JPG, JPEG, PNG** uniquement, **5 Mo maximum**, et type de document
