@@ -5,6 +5,7 @@ import os
 
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
+from django.db import transaction
 from appointments.models import Specialist, Specialty, Clinic
 
 User = get_user_model()
@@ -66,8 +67,13 @@ class Command(BaseCommand):
             self.create_account(account)
         self.link_clinics()
 
+    @transaction.atomic
     def create_account(self, account):
-        """Crée un compte de test s'il n'existe pas — un compte existant n'est jamais modifié."""
+        """Crée un compte de test s'il n'existe pas — un compte existant n'est jamais modifié.
+
+        Transaction atomique : si la création du profil spécialiste échoue,
+        le compte utilisateur est annulé lui aussi (jamais de compte créé à moitié).
+        """
         username = account['username']
         user = User.objects.filter(username=username).first()
 
@@ -87,13 +93,22 @@ class Command(BaseCommand):
                 user.first_name = account['first_name']
                 user.last_name = account['last_name']
                 user.save()
-            self.stdout.write(f'{username} créé')
+            created = True
+        else:
+            created = False
 
         # Médecin : crée le profil spécialiste s'il manque (sans toucher au compte)
+        specialist_created = False
         if 'specialty_id' in account and not Specialist.objects.filter(user=user).exists():
             Specialist.objects.create(
                 user=user, specialty=Specialty.objects.get(pk=account['specialty_id'])
             )
+            specialist_created = True
+
+        # Messages affichés seulement une fois la création complète réussie
+        if created:
+            self.stdout.write(f'{username} créé')
+        if specialist_created:
             self.stdout.write(f'Specialist {username} créé')
 
     def link_clinics(self):
