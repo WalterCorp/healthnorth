@@ -80,7 +80,7 @@
                             <td class="py-3">
                                 <a href="{% url 'document_download' document.id %}" target="_blank" class="text-decoration-none">
                                     <i class="bi bi-file-earmark me-1"></i>
-                                    {{ document.file.name|cut:"documents/" }}
+                                    Ouvrir le document ({{ document.file_extension }})
                                 </a>
                             </td>
                             <td class="py-3">{{ document.uploaded_at|date:"d/m/Y H:i" }}</td>

@@ -210,3 +210,27 @@ class DocumentUploadValidationTests(TestCase):
         other = User.objects.create_user('upload_other', password='pw-test-9')
         self.client.force_login(other)
         self.assertEqual(self.upload('ok.pdf').status_code, 404)
+
+    def test_original_file_name_is_not_kept(self):
+        """Le fichier reçoit un nom aléatoire (uuid) : le nom d'origine n'est jamais stocké."""
+        self.upload('Ordonnance_Jean_Dupont_diabete.PDF')
+        name = Document.objects.get(appointment=self.appointment).file.name
+        self.assertRegex(name, r'^documents/[0-9a-f]{32}\.pdf$')
+        self.assertNotIn('Dupont', name)
+
+    def test_same_name_gives_distinct_files(self):
+        """Deux dépôts du même nom produisent deux fichiers distincts."""
+        self.upload('scan.pdf')
+        self.upload('scan.pdf')
+        names = set(Document.objects.filter(appointment=self.appointment)
+                    .values_list('file', flat=True))
+        self.assertEqual(len(names), 2)
+
+    def test_documents_page_hides_file_name(self):
+        """La page affiche « Ouvrir le document (PDF) » et jamais le nom stocké."""
+        self.upload('Ordonnance_Jean_Dupont.pdf')
+        document = Document.objects.get(appointment=self.appointment)
+        page = self.client.get(self.url)
+        self.assertContains(page, 'Ouvrir le document (PDF)')
+        self.assertNotContains(page, document.file.name.split('/')[-1])
+        self.assertNotContains(page, 'Dupont')

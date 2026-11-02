@@ -1,7 +1,21 @@
 """Modèles de l'application appointments — gestion des rendez-vous médicaux."""
 
+import os
+import uuid
+
 from django.db import models
 from accounts.models import User
+
+
+def document_upload_path(instance, filename):  # pylint: disable=unused-argument
+    """Génère un nom de fichier aléatoire (uuid) en gardant l'extension d'origine.
+
+    Le nom d'origine n'est jamais conservé : il peut contenir des données
+    personnelles (nom du patient, pathologie…).
+    Attention : cette fonction est référencée par les migrations, ne pas la renommer.
+    """
+    extension = os.path.splitext(filename)[1].lower()
+    return f'documents/{uuid.uuid4().hex}{extension}'
 
 
 # Spécialité médicale (ex: cardiologie, radiologie)
@@ -145,7 +159,8 @@ class Document(models.Model):
     """Document médical déposé par le patient lors de la prise de rendez-vous.
 
     Exemples : ordonnance, certificat médical, résultats d'analyse.
-    Les fichiers sont stockés dans le dossier media/documents/.
+    Les fichiers sont stockés sous documents/ (Cloudflare R2 ou disque local),
+    avec un nom aléatoire.
     """
 
     # Types de documents acceptés
@@ -165,9 +180,9 @@ class Document(models.Model):
     document_type = models.CharField(
         max_length=50, choices=DOCUMENT_TYPE_CHOICES, default='autre'
     )
-    # Fichier uploadé — stocké dans media/documents/
-    # upload_to : sous-dossier dans MEDIA_ROOT
-    file = models.FileField(upload_to='documents/')
+    # Fichier uploadé — stocké sous documents/<uuid>.<extension>
+    # upload_to : fonction qui génère un nom aléatoire (pas de nom d'origine conservé)
+    file = models.FileField(upload_to=document_upload_path)
     # Date d'upload — auto_now_add : rempli automatiquement à la création
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
@@ -179,3 +194,8 @@ class Document(models.Model):
     def __str__(self) -> str:
         """Retourne le type de document et le rendez-vous associé."""
         return str(f"{self.get_document_type_display()} — {self.appointment}")  # pylint: disable=no-member
+
+    @property
+    def file_extension(self) -> str:
+        """Retourne le format du fichier en majuscules (ex. PDF), affiché à la place du nom."""
+        return os.path.splitext(self.file.name)[1].lstrip('.').upper() or 'fichier'
