@@ -11,6 +11,7 @@ from django.contrib import messages
 from django.core.files.storage import FileSystemStorage
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
+from .forms import DocumentUploadForm
 from .models import Appointment, Specialist, Specialty, ExamType, Clinic, Document
 
 # Types de fichiers affichés directement dans le navigateur (stockage local) —
@@ -125,26 +126,24 @@ def appointment_documents(request, appointment_id):
     documents = appointment.documents.all()
 
     if request.method == 'POST':
-        # Récupère le type de document et le fichier depuis le formulaire
-        document_type = request.POST.get('document_type')
         # request.FILES contient les fichiers uploadés — différent de request.POST
-        file = request.FILES.get('file')
-
-        if file:
-            # Crée le document en base et sauvegarde le fichier dans media/documents/
-            Document.objects.create(  # pylint: disable=no-member
-                appointment=appointment,
-                document_type=document_type,
-                file=file,
-            )
+        # Le formulaire valide côté serveur : extension, taille (5 Mo max), type de document
+        form = DocumentUploadForm(request.POST, request.FILES)
+        if form.is_valid():
+            document = form.save(commit=False)
+            document.appointment = appointment
+            # Sauvegarde le document en base et le fichier dans le stockage (R2 ou disque)
+            document.save()
             messages.success(request, 'Document déposé avec succès !')
             # Recharge la page pour afficher le nouveau document
             return redirect('appointment_documents', appointment_id=appointment.id)
-        else:
-            messages.error(request, 'Veuillez sélectionner un fichier.')
+    else:
+        form = DocumentUploadForm()
 
     return render(request, 'appointments/documents.html', {
         'appointment': appointment,
+        # Formulaire de dépôt (avec ses éventuelles erreurs de validation)
+        'form': form,
         # Choices pour le select du type de document
         'document_types': Document.DOCUMENT_TYPE_CHOICES,
         # Documents déjà déposés

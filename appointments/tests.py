@@ -7,10 +7,12 @@ from datetime import timedelta
 
 from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
+from .forms import MAX_UPLOAD_SIZE
 from .models import Appointment, Document, Specialist, Specialty
 
 User = get_user_model()
@@ -21,6 +23,11 @@ TEST_STORAGES = {
     'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
     'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'},
 }
+
+
+def tearDownModule():  # pylint: disable=invalid-name
+    """Supprime le dossier temporaire une fois tous les tests du module terminés."""
+    shutil.rmtree(TEST_MEDIA_ROOT, ignore_errors=True)
 
 
 @override_settings(MEDIA_ROOT=TEST_MEDIA_ROOT, STORAGES=TEST_STORAGES)
@@ -47,12 +54,6 @@ class DocumentDownloadTests(TestCase):
         cls.document = Document(appointment=appointment, document_type='ordonnance')
         cls.document.file.save('ordonnance.pdf', ContentFile(b'%PDF-1.4 test'), save=True)
         cls.url = reverse('document_download', args=[cls.document.pk])
-
-    @classmethod
-    def tearDownClass(cls):
-        """Supprime le dossier temporaire des fichiers uploadés."""
-        super().tearDownClass()
-        shutil.rmtree(TEST_MEDIA_ROOT, ignore_errors=True)
 
     def get_as(self, user):
         """Ouvre le document en étant connecté avec l'utilisateur donné."""
@@ -131,3 +132,81 @@ class DocumentDownloadTests(TestCase):
         )
         self.assertContains(page, f'href="{self.url}"')
         self.assertNotContains(page, '/media/')
+
+
+@override_settings(MEDIA_ROOT=TEST_MEDIA_ROOT, STORAGES=TEST_STORAGES)
+class DocumentUploadValidationTests(TestCase):
+    """Validation côté serveur du dépôt de documents (extension, taille, type)."""
+
+    @classmethod
+    def setUpTestData(cls):
+        """Crée un patient et un rendez-vous sur lequel déposer des documents."""
+        specialty = Specialty.objects.create(name='Radiologie', duration_minutes=30)
+        cls.patient = User.objects.create_user('upload_patient', password='pw-test-7')
+        doctor = Specialist.objects.create(
+            user=User.objects.create_user('upload_doctor', password='pw-test-8'),
+            specialty=specialty,
+        )
+        cls.appointment = Appointment.objects.create(
+            patient=cls.patient, specialist=doctor,
+            date=timezone.now() + timedelta(days=7),
+        )
+        cls.url = reverse('appointment_documents', args=[cls.appointment.pk])
+
+    def setUp(self):
+        """Connecte le patient avant chaque test."""
+        self.client.force_login(self.patient)
+
+    def upload(self, name, content=b'%PDF-1.4 test', document_type='ordonnance'):
+        """Envoie un fichier au formulaire de dépôt."""
+        data = {'document_type': document_type}
+        if name is not None:
+            data['file'] = SimpleUploadedFile(name, content)
+        return self.client.post(self.url, data)
+
+    def assert_rejected(self, response, message):
+        """Vérifie que le dépôt est refusé avec le message attendu, sans document créé."""
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, message)
+        self.assertFalse(Document.objects.filter(appointment=self.appointment).exists())
+
+    def test_valid_pdf_is_accepted(self):
+        """Un PDF valide est enregistré et la page est rechargée."""
+        response = self.upload('ordonnance.pdf')
+        self.assertRedirects(response, self.url)
+        document = Document.objects.get(appointment=self.appointment)
+        self.assertEqual(document.document_type, 'ordonnance')
+
+    def test_uppercase_extension_is_accepted(self):
+        """L'extension est vérifiée sans tenir compte de la casse (.JPG)."""
+        self.assertRedirects(self.upload('photo.JPG', b'\xff\xd8\xff'), self.url)
+
+    def test_wrong_extension_is_rejected(self):
+        """Un fichier .exe ou .html est refusé côté serveur, malgré l'attribut accept."""
+        for name in ('virus.exe', 'page.html', 'document.pdf.exe', 'sans_extension'):
+            with self.subTest(name=name):
+                self.assert_rejected(self.upload(name), 'Format de fichier non autorisé')
+
+    def test_file_too_large_is_rejected(self):
+        """Un fichier de plus de 5 Mo est refusé."""
+        response = self.upload('gros.pdf', b'0' * (MAX_UPLOAD_SIZE + 1))
+        self.assert_rejected(response, 'taille maximale autorisée (5 Mo)')
+
+    def test_file_at_size_limit_is_accepted(self):
+        """Un fichier d'exactement 5 Mo est accepté."""
+        self.assertRedirects(self.upload('limite.pdf', b'0' * MAX_UPLOAD_SIZE), self.url)
+
+    def test_invalid_document_type_is_rejected(self):
+        """Un type de document hors des choix autorisés est refusé."""
+        self.assert_rejected(self.upload('ok.pdf', document_type='piratage'),
+                             'Type de document invalide')
+
+    def test_missing_file_is_rejected(self):
+        """Le formulaire sans fichier affiche un message clair."""
+        self.assert_rejected(self.upload(None), 'Veuillez sélectionner un fichier')
+
+    def test_other_patient_cannot_upload(self):
+        """Un autre patient ne peut pas déposer sur ce rendez-vous (404)."""
+        other = User.objects.create_user('upload_other', password='pw-test-9')
+        self.client.force_login(other)
+        self.assertEqual(self.upload('ok.pdf').status_code, 404)

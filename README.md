@@ -129,6 +129,10 @@ redéploiement. Le bucket est **privé** (aucune ACL publique, aucun domaine pub
 situé dans la **juridiction EU** : les données restent dans l'Union européenne.
 Un fichier existant n'est jamais écrasé.
 
+**Validation.** Chaque dépôt est contrôlé côté serveur (l'attribut HTML `accept` ne suffit
+pas) : formats **PDF, JPG, JPEG, PNG** uniquement, **5 Mo maximum**, et type de document
+limité aux choix proposés. Les erreurs s'affichent en français dans le formulaire.
+
 **Contrôle d'accès.** Les liens vers les documents passent par la vue
 `appointments/documents/<id>/download/`, qui :
 
