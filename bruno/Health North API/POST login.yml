@@ -19,7 +19,7 @@ http:
       - name: username
         value: patient1
       - name: password
-        value: NewPass456!
+        value: "{{process.env.PATIENT_PASSWORD}}"
 
 settings:
   encodeUrl: true

@@ -1,5 +1,6 @@
-# Secrets
+# Secrets (fichier .env local) — le modèle .env.example reste versionné
 .env*
+!.env.example
 
 # Dependencies
 node_modules

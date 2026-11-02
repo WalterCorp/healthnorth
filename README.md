@@ -118,6 +118,32 @@ L'application est disponible sur http://127.0.0.1:8000.
 > En production (Render), ces variables sont définies dans le tableau de bord Render
 > et `DATABASE_URL` pointe vers la base Neon.
 
+## 🧪 Tests API avec Bruno
+
+La collection [Bruno](https://www.usebruno.com/) se trouve dans `bruno/Health North API/`,
+avec deux environnements : `Local` (http://127.0.0.1:8000) et `Production`.
+
+**Mot de passe de connexion.** La requête « POST login » lit le mot de passe du compte
+`patient1` dans la variable `PATIENT_PASSWORD`, définie dans un fichier `.env` **local et
+non versionné**, à la racine de la collection (méthode recommandée par Bruno) :
+
+```bash
+cd "bruno/Health North API"
+cp .env.example .env
+```
+
+Renseignez ensuite `PATIENT_PASSWORD` dans ce `.env` : le mot de passe de `patient1` sur la
+base locale (valeur de `SEED_PATIENT_PASSWORD`) pour l'environnement `Local`, ou son mot de
+passe de production pour l'environnement `Production`. Rouvrez ensuite la collection dans
+Bruno pour qu'il relise le fichier.
+
+> Le fichier `.env` de la collection est ignoré par Git (`.gitignore` de la collection) ;
+> seul `.env.example`, sans valeur, est versionné.
+
+**Authentification.** Les requêtes protégées nécessitent une session : exécutez d'abord
+« GET login page (CSRF) », reportez le jeton CSRF et le cookie dans les variables
+`csrfToken` et `csrfCookie` de l'environnement, puis exécutez « POST login ».
+
 ## 🔒 Stockage et accès aux documents médicaux
 
 Les documents déposés par les patients (ordonnances, certificats, résultats d'analyse)
