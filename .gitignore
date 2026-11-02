@@ -1,7 +1,9 @@
 healthnorth-env/
 __pycache__/
 *.pyc
-.env
+# Fichiers d'environnement locaux (secrets) — toutes variantes, sauf le modèle versionné
+.env*
+!.env.example
 db.sqlite3
 .DS_Store
 
