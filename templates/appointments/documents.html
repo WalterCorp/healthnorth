@@ -67,7 +67,7 @@
                         <tr>
                             <td class="ps-4 py-3">{{ document.get_document_type_display }}</td>
                             <td class="py-3">
-                                <a href="{{ document.file.url }}" target="_blank" class="text-decoration-none">
+                                <a href="{% url 'document_download' document.id %}" target="_blank" class="text-decoration-none">
                                     <i class="bi bi-file-earmark me-1"></i>
                                     {{ document.file.name|cut:"documents/" }}
                                 </a>

@@ -16,6 +16,8 @@ urlpatterns = [
     path('<int:appointment_id>/cancel/', views.appointment_cancel, name='appointment_cancel'),
     # Dépôt de documents pour un rendez-vous confirmé
     path('<int:appointment_id>/documents/', views.appointment_documents, name='appointment_documents'),
+    # Consultation sécurisée d'un document (contrôle d'accès puis URL signée)
+    path('documents/<int:document_id>/download/', views.document_download, name='document_download'),
     # API CRUD — liste et création de rendez-vous
     path('api/appointments/', views.api_appointments, name='api_appointments'),
     # API CRUD — détail, modification et suppression d'un rendez-vous

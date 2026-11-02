@@ -1,12 +1,21 @@
 """Vues de l'application appointments — gestion des rendez-vous."""
 
-from django.http import JsonResponse
+import mimetypes
+import os
+
+from django.http import JsonResponse, FileResponse, Http404
 from datetime import datetime
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.core.files.storage import FileSystemStorage
 from django.utils import timezone
+from django.views.decorators.cache import never_cache
 from .models import Appointment, Specialist, Specialty, ExamType, Clinic, Document
+
+# Types de fichiers affichés directement dans le navigateur (stockage local) —
+# tout autre type est téléchargé, pour qu'aucun fichier ne s'exécute sur le domaine du site
+INLINE_CONTENT_TYPES = {'application/pdf', 'image/jpeg', 'image/png'}
 
 
 # @login_required = décorateur de sécurité
@@ -141,6 +150,53 @@ def appointment_documents(request, appointment_id):
         # Documents déjà déposés
         'documents': documents,
     })
+
+
+def can_view_document(user, document):
+    """Indique si l'utilisateur a le droit de consulter ce document médical.
+
+    Autorisés : le patient du rendez-vous, le spécialiste du rendez-vous
+    et les superutilisateurs (moindre privilège : is_staff ne suffit pas).
+    """
+    appointment = document.appointment
+    return (
+        user.is_superuser
+        or appointment.patient_id == user.id
+        or appointment.specialist.user_id == user.id
+    )
+
+
+@never_cache
+@login_required
+def document_download(request, document_id):
+    """Ouvre un document médical après contrôle d'accès.
+
+    Renvoie 404 si l'utilisateur n'a pas le droit de voir le document
+    (sans révéler son existence) ou si le fichier n'existe plus.
+    Avec R2 : redirection vers une URL signée valable 5 minutes.
+    Avec le disque local : le fichier est servi directement par cette vue.
+    """
+    document = get_object_or_404(
+        Document.objects.select_related('appointment__specialist'),  # pylint: disable=no-member
+        pk=document_id,
+    )
+    if not can_view_document(request.user, document):
+        raise Http404
+
+    storage = document.file.storage
+    if not storage.exists(document.file.name):
+        raise Http404
+
+    if isinstance(storage, FileSystemStorage):
+        content_type, _ = mimetypes.guess_type(document.file.name)
+        return FileResponse(
+            document.file.open('rb'),
+            as_attachment=content_type not in INLINE_CONTENT_TYPES,
+            filename=os.path.basename(document.file.name),
+        )
+
+    # URL signée générée par django-storages (querystring_expire = 300 s)
+    return redirect(document.file.url)
 
 
 @login_required
