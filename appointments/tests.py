@@ -234,3 +234,61 @@ class DocumentUploadValidationTests(TestCase):
         self.assertContains(page, 'Ouvrir le document (PDF)')
         self.assertNotContains(page, document.file.name.split('/')[-1])
         self.assertNotContains(page, 'Dupont')
+
+
+@override_settings(MEDIA_ROOT=TEST_MEDIA_ROOT, STORAGES=TEST_STORAGES)
+class DocumentAdminTests(TestCase):
+    """Administration des documents : superutilisateurs uniquement, lien sécurisé."""
+
+    @classmethod
+    def setUpTestData(cls):
+        """Crée un document, un superutilisateur et un membre du staff avec toutes les permissions."""
+        from django.contrib.auth.models import Permission  # pylint: disable=import-outside-toplevel
+        specialty = Specialty.objects.create(name='Dermatologie', duration_minutes=30)
+        patient = User.objects.create_user('admin_patient', password='pw-test-10')
+        doctor = Specialist.objects.create(
+            user=User.objects.create_user('admin_doctor', password='pw-test-11'),
+            specialty=specialty,
+        )
+        appointment = Appointment.objects.create(
+            patient=patient, specialist=doctor, date=timezone.now() + timedelta(days=7),
+        )
+        cls.document = Document(appointment=appointment, document_type='analyse')
+        cls.document.file.save('Resultats_Dupont.pdf', ContentFile(b'%PDF-1.4'), save=True)
+        cls.superuser = User.objects.create_superuser('admin_root', password='pw-test-12')
+        cls.staff = User.objects.create_user('admin_staff', password='pw-test-13', is_staff=True)
+        cls.staff.user_permissions.set(Permission.objects.filter(codename__endswith='_document'))
+        cls.changelist = reverse('admin:appointments_document_changelist')
+        cls.change = reverse('admin:appointments_document_change', args=[cls.document.pk])
+        cls.secure_url = reverse('document_download', args=[cls.document.pk])
+
+    def test_changelist_shows_secure_link(self):
+        """La liste affiche patient, type et un lien vers la vue sécurisée."""
+        self.client.force_login(self.superuser)
+        page = self.client.get(self.changelist)
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, f'href="{self.secure_url}"')
+        self.assertContains(page, 'admin_patient')
+        self.assertContains(page, "Résultats d&#x27;analyse")
+        self.assertNotContains(page, self.document.file.name)
+
+    def test_change_page_never_exposes_file_url(self):
+        """La fiche n'affiche pas le widget fichier (lien file.url) mais le lien sécurisé."""
+        self.client.force_login(self.superuser)
+        page = self.client.get(self.change)
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, f'href="{self.secure_url}"')
+        self.assertNotContains(page, self.document.file.url)
+        self.assertNotContains(page, 'type="file"')
+
+    def test_add_is_disabled(self):
+        """Aucun ajout possible depuis l'admin, même pour un superutilisateur."""
+        self.client.force_login(self.superuser)
+        self.assertEqual(self.client.get(reverse('admin:appointments_document_add')).status_code, 403)
+
+    def test_staff_without_superuser_has_no_access(self):
+        """is_staff avec toutes les permissions Document ne suffit pas : moindre privilège."""
+        self.client.force_login(self.staff)
+        self.assertEqual(self.client.get(self.changelist).status_code, 403)
+        self.assertEqual(self.client.get(self.change).status_code, 403)
+        self.assertNotContains(self.client.get(reverse('admin:index')), 'Documents')
