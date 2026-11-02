@@ -1,11 +1,58 @@
 """Commande Django pour peupler la base de données en production."""
 
 # pylint: disable=no-member
+import os
+
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 from appointments.models import Specialist, Specialty, Clinic
 
 User = get_user_model()
+
+# Comptes de test — les mots de passe sont lus depuis l'environnement,
+# jamais écrits dans le code (dépôt public)
+TEST_ACCOUNTS = [
+    {
+        'username': 'admin', 'email': 'admin@healthnorth.com',
+        'password_env': 'SEED_ADMIN_PASSWORD', 'is_superuser': True,
+    },
+    {
+        'username': 'patient1', 'email': 'patient1@healthnorth.com',
+        'first_name': 'Jean', 'last_name': 'Dupont',
+        'password_env': 'SEED_PATIENT_PASSWORD',
+    },
+    # Médecins — specialty_id correspond aux spécialités chargées par la fixture
+    {
+        'username': 'dr.martin', 'email': 'martin@healthnorth.com',
+        'first_name': 'Pierre', 'last_name': 'Martin',
+        'password_env': 'SEED_DOCTOR_PASSWORD', 'specialty_id': 1,
+    },
+    {
+        'username': 'dr.dubois', 'email': 'dubois@healthnorth.com',
+        'first_name': 'Sophie', 'last_name': 'Dubois',
+        'password_env': 'SEED_DOCTOR_PASSWORD', 'specialty_id': 2,
+    },
+    {
+        'username': 'dr.bernard', 'email': 'bernard@healthnorth.com',
+        'first_name': 'Claire', 'last_name': 'Bernard',
+        'password_env': 'SEED_DOCTOR_PASSWORD', 'specialty_id': 3,
+    },
+    {
+        'username': 'dr.leroy', 'email': 'leroy@healthnorth.com',
+        'first_name': 'Marc', 'last_name': 'Leroy',
+        'password_env': 'SEED_DOCTOR_PASSWORD', 'specialty_id': 4,
+    },
+]
+
+# Association cliniques — spécialistes (pk de la clinique → médecins)
+CLINIC_SPECIALISTS = {
+    1: ['dr.martin', 'dr.dubois'],
+    2: ['dr.martin', 'dr.bernard'],
+    3: ['dr.dubois', 'dr.leroy'],
+    4: ['dr.bernard', 'dr.leroy'],
+    5: ['dr.martin', 'dr.leroy'],
+    6: ['dr.dubois', 'dr.bernard'],
+}
 
 
 class Command(BaseCommand):
@@ -15,82 +62,57 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         """Exécute le script de peuplement."""
+        for account in TEST_ACCOUNTS:
+            self.create_account(account)
+        self.link_clinics()
 
-        # Superuser admin
-        if not User.objects.filter(username='admin').exists():
-            User.objects.create_superuser('admin', 'admin@healthnorth.com', 'admin1234')
-            self.stdout.write('Admin créé')
+    def create_account(self, account):
+        """Crée un compte de test s'il n'existe pas — un compte existant n'est jamais modifié."""
+        username = account['username']
+        user = User.objects.filter(username=username).first()
 
-        # Patient de test
-        if not User.objects.filter(username='patient1').exists():
-            u = User.objects.create_user('patient1', 'patient1@healthnorth.com', 'NewPass456!')
-            u.first_name = 'Jean'
-            u.last_name = 'Dupont'
-            u.save()
-            self.stdout.write('Patient1 créé')
+        if user is None:
+            password = os.environ.get(account['password_env'])
+            if not password:
+                # Pas d'erreur : le build Render ne doit jamais échouer pour un compte de test
+                self.stdout.write(self.style.WARNING(
+                    f"Compte '{username}' non créé : "
+                    f"variable {account['password_env']} absente"
+                ))
+                return
+            if account.get('is_superuser'):
+                user = User.objects.create_superuser(username, account['email'], password)
+            else:
+                user = User.objects.create_user(username, account['email'], password)
+                user.first_name = account['first_name']
+                user.last_name = account['last_name']
+                user.save()
+            self.stdout.write(f'{username} créé')
 
-        # Dr. Martin — Cardiologue
-        if not User.objects.filter(username='dr.martin').exists():
-            u = User.objects.create_user('dr.martin', 'martin@healthnorth.com', 'TestPass123!')
-            u.first_name = 'Pierre'
-            u.last_name = 'Martin'
-            u.save()
-            Specialist.objects.create(user=u, specialty=Specialty.objects.get(pk=1))
-            self.stdout.write('Dr. Martin créé')
-        elif not Specialist.objects.filter(user__username='dr.martin').exists():
-            u = User.objects.get(username='dr.martin')
-            Specialist.objects.create(user=u, specialty=Specialty.objects.get(pk=1))
-            self.stdout.write('Specialist Martin créé')
+        # Médecin : crée le profil spécialiste s'il manque (sans toucher au compte)
+        if 'specialty_id' in account and not Specialist.objects.filter(user=user).exists():
+            Specialist.objects.create(
+                user=user, specialty=Specialty.objects.get(pk=account['specialty_id'])
+            )
+            self.stdout.write(f'Specialist {username} créé')
 
-        # Dr. Dubois — Radiologue
-        if not User.objects.filter(username='dr.dubois').exists():
-            u = User.objects.create_user('dr.dubois', 'dubois@healthnorth.com', 'TestPass123!')
-            u.first_name = 'Sophie'
-            u.last_name = 'Dubois'
-            u.save()
-            Specialist.objects.create(user=u, specialty=Specialty.objects.get(pk=2))
-            self.stdout.write('Dr. Dubois créé')
-        elif not Specialist.objects.filter(user__username='dr.dubois').exists():
-            u = User.objects.get(username='dr.dubois')
-            Specialist.objects.create(user=u, specialty=Specialty.objects.get(pk=2))
-            self.stdout.write('Specialist Dubois créé')
+    def link_clinics(self):
+        """Associe les cliniques aux spécialistes, si tous les médecins existent."""
+        usernames = {name for names in CLINIC_SPECIALISTS.values() for name in names}
+        specialists = {
+            s.user.username: s
+            for s in Specialist.objects.filter(user__username__in=usernames).select_related('user')
+        }
+        missing = sorted(usernames - specialists.keys())
+        if missing:
+            self.stdout.write(self.style.WARNING(
+                'Association cliniques ignorée : spécialistes manquants '
+                f"({', '.join(missing)})"
+            ))
+            return
 
-        # Dr. Bernard — Dermatologue
-        if not User.objects.filter(username='dr.bernard').exists():
-            u = User.objects.create_user('dr.bernard', 'bernard@healthnorth.com', 'TestPass123!')
-            u.first_name = 'Claire'
-            u.last_name = 'Bernard'
-            u.save()
-            Specialist.objects.create(user=u, specialty=Specialty.objects.get(pk=3))
-            self.stdout.write('Dr. Bernard créé')
-        elif not Specialist.objects.filter(user__username='dr.bernard').exists():
-            u = User.objects.get(username='dr.bernard')
-            Specialist.objects.create(user=u, specialty=Specialty.objects.get(pk=3))
-            self.stdout.write('Specialist Bernard créé')
-
-        # Dr. Leroy — Pédiatre
-        if not User.objects.filter(username='dr.leroy').exists():
-            u = User.objects.create_user('dr.leroy', 'leroy@healthnorth.com', 'TestPass123!')
-            u.first_name = 'Marc'
-            u.last_name = 'Leroy'
-            u.save()
-            Specialist.objects.create(user=u, specialty=Specialty.objects.get(pk=4))
-            self.stdout.write('Dr. Leroy créé')
-        elif not Specialist.objects.filter(user__username='dr.leroy').exists():
-            u = User.objects.get(username='dr.leroy')
-            Specialist.objects.create(user=u, specialty=Specialty.objects.get(pk=4))
-            self.stdout.write('Specialist Leroy créé')
-
-        # Association cliniques — spécialistes
-        martin = Specialist.objects.get(user__username='dr.martin')
-        dubois = Specialist.objects.get(user__username='dr.dubois')
-        bernard = Specialist.objects.get(user__username='dr.bernard')
-        leroy = Specialist.objects.get(user__username='dr.leroy')
-
-        Clinic.objects.get(pk=1).specialist_set.set([martin, dubois])
-        Clinic.objects.get(pk=2).specialist_set.set([martin, bernard])
-        Clinic.objects.get(pk=3).specialist_set.set([dubois, leroy])
-        Clinic.objects.get(pk=4).specialist_set.set([bernard, leroy])
-        Clinic.objects.get(pk=5).specialist_set.set([martin, leroy])
-        Clinic.objects.get(pk=6).specialist_set.set([dubois, bernard])
+        for clinic_id, names in CLINIC_SPECIALISTS.items():
+            Clinic.objects.get(pk=clinic_id).specialist_set.set(
+                [specialists[name] for name in names]
+            )
         self.stdout.write('Cliniques associées aux spécialistes')

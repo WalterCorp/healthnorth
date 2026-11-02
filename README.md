@@ -14,6 +14,8 @@ Application web de réservation de rendez-vous médicaux en ligne.
 | Administrateur | `admin` |
 | Dr. Martin (Cardio) | `dr.martin` |
 | Dr. Dubois (Radio) | `dr.dubois` |
+| Dr. Bernard (Dermato) | `dr.bernard` |
+| Dr. Leroy (Pédiatre) | `dr.leroy` |
 
 > Les mots de passe des comptes de test sont disponibles sur demande auprès du développeur.
 
@@ -82,6 +84,9 @@ Renseignez ensuite les valeurs dans `.env` :
 | `SECRET_KEY` | Clé secrète Django (obligatoire) |
 | `DEBUG` | `True` en local uniquement — désactivé par défaut |
 | `DATABASE_URL` | URL de connexion à votre PostgreSQL local, au format `postgresql://UTILISATEUR:MOT_DE_PASSE@localhost:5432/healthnorth` |
+| `SEED_ADMIN_PASSWORD` | Mot de passe du compte de test `admin` |
+| `SEED_PATIENT_PASSWORD` | Mot de passe du compte de test `patient1` |
+| `SEED_DOCTOR_PASSWORD` | Mot de passe commun aux 4 comptes médecins |
 
 Pour générer une `SECRET_KEY` :
 ```bash
@@ -89,6 +94,11 @@ python -c "from django.core.management.utils import get_random_secret_key; print
 ```
 
 > Si `SECRET_KEY` ou `DATABASE_URL` est absente, Django s'arrête avec une erreur `ImproperlyConfigured` explicite.
+
+> Les variables `SEED_*` ne servent qu'à la commande `python manage.py seed`, qui crée les
+> comptes de test. Si l'une d'elles est vide, le compte concerné n'est pas créé et un
+> avertissement s'affiche (sans erreur). Un compte déjà existant n'est jamais modifié :
+> son mot de passe n'est pas réinitialisé.
 
 ### 4. Initialiser la base et lancer le serveur
 ```bash
