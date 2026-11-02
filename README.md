@@ -24,6 +24,7 @@ Application web de réservation de rendez-vous médicaux en ligne.
 - **Backend** : Django 6 / Python 3.12
 - **Base de données** : PostgreSQL serverless (Neon)
 - **Hébergement** : Render.com (application uniquement)
+- **Stockage des documents** : Cloudflare R2 (compatible S3, bucket privé, juridiction EU)
 - **Frontend** : Bootstrap 5.3 + Bootstrap Icons
 - **Tests API** : Bruno (collection dans `bruno/`)
 
@@ -87,6 +88,10 @@ Renseignez ensuite les valeurs dans `.env` :
 | `SEED_ADMIN_PASSWORD` | Mot de passe du compte de test `admin` |
 | `SEED_PATIENT_PASSWORD` | Mot de passe du compte de test `patient1` |
 | `SEED_DOCTOR_PASSWORD` | Mot de passe commun aux 4 comptes médecins |
+| `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | Clé API R2 (facultatif en local, voir ci-dessous) |
+| `R2_BUCKET_NAME` | Nom du bucket R2 |
+| `R2_ENDPOINT_URL` | Endpoint R2 de la juridiction EU : `https://<ACCOUNT_ID>.eu.r2.cloudflarestorage.com` |
+| `R2_LOCATION` | Préfixe des fichiers dans le bucket (ex. `local`) — facultatif |
 
 Pour générer une `SECRET_KEY` :
 ```bash
@@ -112,6 +117,37 @@ L'application est disponible sur http://127.0.0.1:8000.
 
 > En production (Render), ces variables sont définies dans le tableau de bord Render
 > et `DATABASE_URL` pointe vers la base Neon.
+
+## 🔒 Stockage et accès aux documents médicaux
+
+Les documents déposés par les patients (ordonnances, certificats, résultats d'analyse)
+sont des données de santé : ils ne sont jamais accessibles par une URL publique.
+
+**Stockage.** En production, les fichiers sont stockés sur **Cloudflare R2** (via
+`django-storages`, compatible S3) et non sur le disque de Render, qui est effacé à chaque
+redéploiement. Le bucket est **privé** (aucune ACL publique, aucun domaine public) et
+situé dans la **juridiction EU** : les données restent dans l'Union européenne.
+Un fichier existant n'est jamais écrasé.
+
+**Contrôle d'accès.** Les liens vers les documents passent par la vue
+`appointments/documents/<id>/download/`, qui :
+
+1. exige d'être connecté ;
+2. vérifie que l'utilisateur est le **patient** du rendez-vous, le **spécialiste** du
+   rendez-vous ou un **superutilisateur** — sinon elle renvoie une erreur 404, sans
+   révéler l'existence du document ;
+3. redirige vers une **URL signée valable 5 minutes**, générée à la demande.
+   Passé ce délai, le lien est refusé par R2.
+
+**En local.** R2 est facultatif :
+
+- **sans R2** (les 4 variables `R2_*` vides) : les fichiers sont stockés dans `media/`
+  (non versionné) et servis par la même vue sécurisée — il n'existe pas de route `/media/` ;
+- **avec R2** : renseignez les 4 variables et `R2_LOCATION=local`, pour que vos fichiers
+  de test soient rangés sous le préfixe `local/` et jamais mélangés à ceux de production.
+
+> Une configuration R2 incomplète (certaines variables seulement) arrête Django avec une
+> erreur `ImproperlyConfigured`, pour ne jamais retomber silencieusement sur le disque.
 
 ## 📁 Documentation
 
