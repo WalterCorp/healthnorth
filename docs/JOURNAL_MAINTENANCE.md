@@ -940,7 +940,7 @@ La date saisie est interprétée à l'heure de Paris, stockée en UTC, et compar
 
 **Date :** 3 novembre 2026 · **Type :** corrective
 
-> **Résumé oral (30 secondes).** Pendant mes tests manuels en production, j'ai constaté qu'après une erreur de validation, la date et les notes étaient conservées, mais que les cinq listes en cascade (région, ville, clinique, spécialiste, type d'examen) revenaient à zéro : le patient devait tout ressaisir. Ces listes sont construites en JavaScript à partir de l'API, et la page réaffichée repartait de son état initial. J'ai retenu une solution où le serveur renvoie les choix déjà faits, et où le JavaScript recharge chaque niveau dans l'ordre pour les resélectionner. Les tests côté serveur et une vérification dans un navigateur montrent que les choix sont restaurés, sans changer le fonctionnement normal.
+> **Résumé oral (30 secondes).** Pendant mes tests manuels en production, j'ai constaté qu'après une erreur de validation, la date et les notes étaient conservées, mais que les cinq listes en cascade (région, ville, clinique, spécialiste, type d'examen) revenaient à zéro : le patient devait tout ressaisir. Ces listes sont construites en JavaScript à partir de l'API, et la page réaffichée repartait de son état initial. J'ai retenu une solution où le serveur renvoie les choix déjà faits, et où le JavaScript recharge chaque niveau dans l'ordre pour les resélectionner. Les tests côté serveur, une vérification dans un navigateur et mes tests en production montrent que les choix sont restaurés, sans changer le fonctionnement normal.
 
 ### Constat
 
@@ -984,7 +984,15 @@ Les 3 tests échouent sur l'ancien code et passent sur le nouveau.
 | Saisie valide après la restauration | Passage à l'écran de confirmation avec la bonne date |
 | Console du navigateur | Aucune erreur JavaScript |
 
-**Tests manuels en production :** à réaliser après le déploiement — provoquer une erreur de validation (date vide ou passée, en contournant le navigateur) et vérifier que les cinq listes sont resélectionnées ; puis changer de région pour vérifier que la cascade se réinitialise.
+**Tests manuels en production** (healthnorth.onrender.com, compte `patient1`) :
+
+| Test | Résultat |
+|---|---|
+| Cinq listes remplies (Île-de-France, Paris, Health North Paris Centre, Dr. Martin, IRM cardiaque), attribut `min` supprimé, date passée (01/11/2026 11:55) | Alerte rouge « La date du rendez-vous doit être dans le futur. », puis **les cinq listes resélectionnées** et la date conservée |
+| Changement de région vers Auvergne-Rhône-Alpes sur la page réaffichée | La liste des villes se recharge et reste active ; clinique, spécialiste et examen se vident et se désactivent |
+| Nouvelle sélection complète avec une date future | Récapitulatif correct (Dr. Martin, Health North Lyon Sud, IRM cardiaque 45 min, 12/11/2026 11:55), sans confirmation |
+
+Le cas de la date vide n'a pas été refait en production : il passe par le même mécanisme de restauration, vérifié en local dans le navigateur.
 
 ### Commits concernés
 
