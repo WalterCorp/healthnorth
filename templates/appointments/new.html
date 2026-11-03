@@ -72,127 +72,101 @@
     </div>
 </div>
 
+{# Choix déjà faits par le patient, renvoyés par le serveur après une erreur de validation #}
+{{ selection|json_script:"initial-selection" }}
 <script>
-    document.getElementById('region-select').addEventListener('change', function () {
-        const region = this.value;
-        const citySelect = document.getElementById('city-select');
-        const clinicSelect = document.getElementById('clinic-select');
-        const specialistSelect = document.getElementById('specialist-select');
-        const examSelect = document.getElementById('exam-type-select');
+    // Listes en cascade : région → ville → clinique → spécialiste → type d'examen
+    const regionSelect = document.getElementById('region-select');
+    const citySelect = document.getElementById('city-select');
+    const clinicSelect = document.getElementById('clinic-select');
+    const specialistSelect = document.getElementById('specialist-select');
+    const examSelect = document.getElementById('exam-type-select');
 
-        citySelect.innerHTML = '<option value="">-- Choisir une ville --</option>';
-        clinicSelect.innerHTML = '<option value="">-- Choisir une ville d\'abord --</option>';
-        specialistSelect.innerHTML = '<option value="">-- Choisir une clinique d\'abord --</option>';
-        examSelect.innerHTML = '<option value="">-- Choisir un spécialiste d\'abord --</option>';
-        citySelect.disabled = true;
-        clinicSelect.disabled = true;
-        specialistSelect.disabled = true;
-        examSelect.disabled = true;
+    // Vide une liste, n'y laisse qu'un libellé d'invite et la désactive
+    function resetSelect(select, label) {
+        select.innerHTML = '';
+        select.appendChild(new Option(label, ''));
+        select.disabled = true;
+    }
 
-        if (!region) return;
-
-        fetch(`/appointments/api/cities/${region}/`)
+    // Remplit une liste à partir de l'API JSON ; renvoie une promesse résolue une fois la liste prête
+    function fillSelect(select, url, emptyLabel, toOption) {
+        return fetch(url)
             .then(response => response.json())
-            .then(cities => {
-                if (cities.length === 0) {
-                    citySelect.innerHTML = '<option value="">-- Aucune ville disponible --</option>';
+            .then(items => {
+                if (items.length === 0) {
+                    resetSelect(select, emptyLabel);
                     return;
                 }
-                cities.forEach(city => {
-                    const option = document.createElement('option');
-                    option.value = city;
-                    option.textContent = city;
-                    citySelect.appendChild(option);
+                items.forEach(item => {
+                    const [value, label] = toOption(item);
+                    select.appendChild(new Option(label, value));
                 });
-                citySelect.disabled = false;
+                select.disabled = false;
             });
-    });
+    }
 
-    document.getElementById('city-select').addEventListener('change', function () {
-        const city = this.value;
-        const clinicSelect = document.getElementById('clinic-select');
-        const specialistSelect = document.getElementById('specialist-select');
-        const examSelect = document.getElementById('exam-type-select');
+    function loadCities(region) {
+        resetSelect(citySelect, region ? '-- Choisir une ville --' : '-- Choisir une région d\'abord --');
+        resetSelect(clinicSelect, '-- Choisir une ville d\'abord --');
+        resetSelect(specialistSelect, '-- Choisir une clinique d\'abord --');
+        resetSelect(examSelect, '-- Choisir un spécialiste d\'abord --');
+        if (!region) return Promise.resolve();
+        return fillSelect(citySelect, `/appointments/api/cities/${encodeURIComponent(region)}/`,
+            '-- Aucune ville disponible --', city => [city, city]);
+    }
 
-        clinicSelect.innerHTML = '<option value="">-- Choisir une clinique --</option>';
-        specialistSelect.innerHTML = '<option value="">-- Choisir une clinique d\'abord --</option>';
-        examSelect.innerHTML = '<option value="">-- Choisir un spécialiste d\'abord --</option>';
-        clinicSelect.disabled = true;
-        specialistSelect.disabled = true;
-        examSelect.disabled = true;
+    function loadClinics(city) {
+        resetSelect(clinicSelect, city ? '-- Choisir une clinique --' : '-- Choisir une ville d\'abord --');
+        resetSelect(specialistSelect, '-- Choisir une clinique d\'abord --');
+        resetSelect(examSelect, '-- Choisir un spécialiste d\'abord --');
+        if (!city) return Promise.resolve();
+        return fillSelect(clinicSelect, `/appointments/api/clinics/${encodeURIComponent(city)}/`,
+            '-- Aucune clinique disponible --', clinic => [clinic.id, `${clinic.name} — ${clinic.address}`]);
+    }
 
-        if (!city) return;
+    function loadSpecialists(clinicId) {
+        resetSelect(specialistSelect, clinicId ? '-- Choisir un spécialiste --' : '-- Choisir une clinique d\'abord --');
+        resetSelect(examSelect, '-- Choisir un spécialiste d\'abord --');
+        if (!clinicId) return Promise.resolve();
+        return fillSelect(specialistSelect, `/appointments/api/specialists/${encodeURIComponent(clinicId)}/`,
+            '-- Aucun spécialiste disponible --', specialist => [specialist.id, `${specialist.name} — ${specialist.specialty}`]);
+    }
 
-        fetch(`/appointments/api/clinics/${city}/`)
-            .then(response => response.json())
-            .then(clinics => {
-                if (clinics.length === 0) {
-                    clinicSelect.innerHTML = '<option value="">-- Aucune clinique disponible --</option>';
-                    return;
-                }
-                clinics.forEach(clinic => {
-                    const option = document.createElement('option');
-                    option.value = clinic.id;
-                    option.textContent = `${clinic.name} — ${clinic.address}`;
-                    clinicSelect.appendChild(option);
-                });
-                clinicSelect.disabled = false;
-            });
-    });
+    function loadExamTypes(specialistId) {
+        resetSelect(examSelect, specialistId ? '-- Choisir un type d\'examen --' : '-- Choisir un spécialiste d\'abord --');
+        if (!specialistId) return Promise.resolve();
+        return fillSelect(examSelect, `/appointments/api/exam-types/${encodeURIComponent(specialistId)}/`,
+            '-- Aucun examen disponible --', exam => [exam.id, `${exam.name} — ${exam.duration_minutes} min`]);
+    }
 
-    document.getElementById('clinic-select').addEventListener('change', function () {
-        const clinicId = this.value;
-        const specialistSelect = document.getElementById('specialist-select');
-        const examSelect = document.getElementById('exam-type-select');
+    // Fonctionnement normal : chaque choix recharge le niveau suivant
+    regionSelect.addEventListener('change', () => loadCities(regionSelect.value));
+    citySelect.addEventListener('change', () => loadClinics(citySelect.value));
+    clinicSelect.addEventListener('change', () => loadSpecialists(clinicSelect.value));
+    specialistSelect.addEventListener('change', () => loadExamTypes(specialistSelect.value));
 
-        specialistSelect.innerHTML = '<option value="">-- Choisir un spécialiste --</option>';
-        examSelect.innerHTML = '<option value="">-- Choisir un spécialiste d\'abord --</option>';
-        specialistSelect.disabled = true;
-        examSelect.disabled = true;
+    // Sélectionne une valeur si elle existe dans la liste ; renvoie false sinon
+    function selectValue(select, value) {
+        if (!value || ![...select.options].some(option => option.value === String(value))) return false;
+        select.value = String(value);
+        return true;
+    }
 
-        if (!clinicId) return;
+    // Après une erreur de validation : recharge chaque niveau dans l'ordre et resélectionne
+    // les choix du patient ; s'arrête au premier choix qui n'existe plus
+    async function restoreSelection(selection) {
+        if (!selectValue(regionSelect, selection.region)) return;
+        await loadCities(selection.region);
+        if (!selectValue(citySelect, selection.city)) return;
+        await loadClinics(selection.city);
+        if (!selectValue(clinicSelect, selection.clinic)) return;
+        await loadSpecialists(selection.clinic);
+        if (!selectValue(specialistSelect, selection.specialist)) return;
+        await loadExamTypes(selection.specialist);
+        selectValue(examSelect, selection.exam_type);
+    }
 
-        fetch(`/appointments/api/specialists/${clinicId}/`)
-            .then(response => response.json())
-            .then(specialists => {
-                if (specialists.length === 0) {
-                    specialistSelect.innerHTML = '<option value="">-- Aucun spécialiste disponible --</option>';
-                    return;
-                }
-                specialists.forEach(specialist => {
-                    const option = document.createElement('option');
-                    option.value = specialist.id;
-                    option.textContent = `${specialist.name} — ${specialist.specialty}`;
-                    specialistSelect.appendChild(option);
-                });
-                specialistSelect.disabled = false;
-            });
-    });
-
-    document.getElementById('specialist-select').addEventListener('change', function () {
-        const specialistId = this.value;
-        const examSelect = document.getElementById('exam-type-select');
-
-        examSelect.innerHTML = '<option value="">-- Choisir un type d\'examen --</option>';
-        examSelect.disabled = true;
-
-        if (!specialistId) return;
-
-        fetch(`/appointments/api/exam-types/${specialistId}/`)
-            .then(response => response.json())
-            .then(examTypes => {
-                if (examTypes.length === 0) {
-                    examSelect.innerHTML = '<option value="">-- Aucun examen disponible --</option>';
-                    return;
-                }
-                examTypes.forEach(exam => {
-                    const option = document.createElement('option');
-                    option.value = exam.id;
-                    option.textContent = `${exam.name} — ${exam.duration_minutes} min`;
-                    examSelect.appendChild(option);
-                });
-                examSelect.disabled = false;
-            });
-    });
+    restoreSelection(JSON.parse(document.getElementById('initial-selection').textContent) || {});
 </script>
 {% endblock %}

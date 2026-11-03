@@ -40,6 +40,9 @@ def appointment_new(request):
     regions = Clinic.REGION_CHOICES  # pylint: disable=no-member
     exam_types = ExamType.objects.all()  # pylint: disable=no-member
 
+    # Choix des listes en cascade à resélectionner après une erreur (vide au premier affichage)
+    selection = {}
+
     if request.method == 'POST':
         # Validation côté serveur : champs obligatoires, format de date, date future
         form = AppointmentForm(request.POST)
@@ -47,12 +50,19 @@ def appointment_new(request):
             # Seules des données validées sont conservées en session jusqu'à la confirmation
             request.session['appointment_data'] = form.session_data()
             return redirect('appointment_confirm')
+        # Formulaire invalide : renvoie les identifiants choisis pour restaurer la cascade
+        selection = {
+            key: request.POST.get(key, '')
+            for key in ('region', 'city', 'clinic', 'specialist', 'exam_type')
+        }
     else:
         form = AppointmentForm()
 
     return render(request, 'appointments/new.html', {
         # Formulaire (avec ses éventuelles erreurs de validation)
         'form': form,
+        # Choix à resélectionner dans les listes en cascade (sérialisés par json_script)
+        'selection': selection,
         'regions': regions,
         'exam_types': exam_types,
         'now': timezone.now().strftime('%Y-%m-%dT%H:%M'),

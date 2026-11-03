@@ -605,6 +605,31 @@ class AppointmentValidationTests(TestCase):
                 self.assertRedirects(response, self.new_url)
                 self.assertNotIn('appointment_data', self.client.session)
 
+    def test_booking_error_returns_cascade_selection(self):
+        """Après une erreur de validation, les choix de la cascade sont renvoyés à la page."""
+        data = self.booking_data(date=self.past, region=self.clinic.region, city=self.clinic.city)
+        response = self.client.post(self.new_url, data)
+        self.assertEqual(response.status_code, 200)
+        expected = {'region': self.clinic.region, 'city': 'Lille', 'clinic': str(self.clinic.pk),
+                    'specialist': str(self.specialist.pk), 'exam_type': str(self.exam_type.pk)}
+        self.assertEqual(response.context['selection'], expected)
+        # Données lues par le JavaScript (balise json_script)
+        self.assertContains(response, '<script id="initial-selection" type="application/json">')
+        self.assertContains(response, json.dumps(expected))
+
+    def test_first_display_has_empty_cascade_selection(self):
+        """Premier affichage : aucune sélection à restaurer."""
+        response = self.client.get(self.new_url)
+        self.assertEqual(response.context['selection'], {})
+        self.assertContains(response, '<script id="initial-selection" type="application/json">{}</script>')
+
+    def test_cascade_selection_is_escaped(self):
+        """Une valeur forgée ne peut pas injecter de script dans la page (json_script échappe < et >)."""
+        payload = '</script><script>alert(1)</script>'
+        response = self.client.post(self.new_url, self.booking_data(date='', city=payload))
+        self.assertNotContains(response, payload)
+        self.assertContains(response, '\\u003C/script\\u003E')
+
     # --- Modification de rendez-vous (formulaire web) ---
 
     def assert_edit_rejected(self, date, message):
