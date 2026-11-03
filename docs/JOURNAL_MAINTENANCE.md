@@ -4,7 +4,7 @@
 **Dépôt :** github.com/WalterCorp/healthnorth (public), branche `main`
 **Production :** https://healthnorth.onrender.com
 **Cadre :** BTS SIO option SLAM — épreuve E6 (session 2027, épreuve ponctuelle)
-**Période couverte :** 1er et 2 novembre 2026
+**Période couverte :** 1er au 3 novembre 2026
 **Auteur :** Walter Jean Charles
 
 ---
@@ -26,6 +26,7 @@
 - [Fiche 10 — Incident évité : clés R2 dans un fichier « .env. » non ignoré](#fiche-10--incident-évité--clés-r2-dans-un-fichier--env--non-ignoré)
 - [Fiche 11 — Corrections diverses](#fiche-11--corrections-diverses)
 - [Fiche 12 — Validation des rendez-vous côté serveur](#fiche-12--validation-des-rendez-vous-côté-serveur)
+- [Fiche 13 — Listes en cascade restaurées après une erreur de validation](#fiche-13--listes-en-cascade-restaurées-après-une-erreur-de-validation)
 - [Architecture actuelle](#architecture-actuelle)
 - [Vérifications reproductibles](#vérifications-reproductibles)
 - [Limites connues et évolutions possibles](#limites-connues-et-évolutions-possibles)
@@ -70,10 +71,11 @@ Aucune commande n'a été exécutée directement sur la base de production : tou
 | 10 | Incident évité : clés R2 dans un fichier « .env. » non ignoré | 02/11/2026 | Sécurité | `eaafba5` |
 | 11 | Corrections diverses (STORAGES/WhiteNoise, .gitignore, README, pied de page, fuseau horaire, messages d'erreur de connexion) | 01–02/11/2026 | Corrective | `2b4e279`, `74a5e63`, `47f57ca`, `3a2ac18` (+ `abf4006`, `09b1d3c`, `6cc8dad`) |
 | 12 | Validation des rendez-vous côté serveur (formulaires web et API, test Bruno) | 02/11/2026 | Corrective | `47ce05a` |
+| 13 | Listes en cascade restaurées après une erreur de validation | 03/11/2026 | Corrective | `9aecb1c` |
 
 ## Tests automatisés
 
-**61 tests automatisés**, tous au vert, dans `appointments/tests.py` et `accounts/tests.py` (avant ces interventions, ces deux fichiers étaient vides).
+**64 tests automatisés**, tous au vert, dans `appointments/tests.py` et `accounts/tests.py` (avant ces interventions, ces deux fichiers étaient vides).
 
 | Classe de tests | Nombre | Fiches |
 |---|---|---|
@@ -84,7 +86,7 @@ Aucune commande n'a été exécutée directement sur la base de production : tou
 | `LocalTimezoneDisplayTests` — fuseau horaire de l'admin | 3 | 11 |
 | `ErrorMessageDisplayTests` — style et icône des messages d'erreur | 1 | 11 |
 | `LoginErrorDisplayTests` (`accounts/tests.py`) — erreurs de connexion | 4 | 11 |
-| `AppointmentValidationTests` — validation des rendez-vous (web et API) | 18 | 12 |
+| `AppointmentValidationTests` — validation des rendez-vous (web et API), restauration de la cascade | 21 | 12, 13 |
 
 Les tests liés aux documents forcent un stockage sur disque dans un dossier temporaire (supprimé à la fin) : ils ne contactent jamais Cloudflare R2. Commande (en local, avec un rôle PostgreSQL autorisé à créer la base de test) :
 
@@ -806,6 +808,7 @@ Le script de test vérifiait la configuration avant d'agir (base locale, stockag
   - le dépôt de documents affichait déjà ses erreurs générales.
 - **Solution :** un gabarit partagé `templates/includes/non_field_errors.html` (alerte rouge Bootstrap avec icône d'avertissement), inclus dans la connexion, l'inscription, le profil et le dépôt de documents ; dans `base.html`, icône d'avertissement pour les messages d'erreur et d'avertissement, icône d'information pour les messages d'information.
 - **Tests :** 5 tests automatisés (mauvais mot de passe et identifiant inexistant → alerte rouge avec le message de Django ; aucune alerte au premier affichage ; connexion valide toujours redirigée vers l'accueil ; message d'erreur avec le style et l'icône d'erreur). **Les 3 tests d'affichage échouent sur les anciens templates et passent sur les nouveaux.**
+- **Test manuel en production :** connexion de `patient1` avec un mauvais mot de passe → alerte rouge « Saisissez un nom d'utilisateur et un mot de passe valides… », identifiant conservé dans le champ.
 - **Commit :** `3a2ac18` `fix: display login error messages`
 
 ### Compétences mobilisées
@@ -888,7 +891,15 @@ Sur l'ancien code, les **14 tests de défauts échouent** (dont 11 cas qui levai
 
 **Vérification sur ma base locale**, dans une transaction annulée à la fin : les corps des requêtes Bruno `POST` et `PUT`, utilisés tels quels, renvoient 201 et 200 ; la page de prise de rendez-vous envoyée vide affiche ses 4 messages dans l'alerte rouge.
 
-**Tests manuels en production :** à réaliser après le déploiement (prise de rendez-vous valide, date passée saisie en contournant le navigateur, modification, collection Bruno).
+**Tests manuels en production** (healthnorth.onrender.com, compte `patient1`) :
+
+| Test | Résultat |
+|---|---|
+| Date vide, après suppression de l'attribut `required` avec l'inspecteur du navigateur | Formulaire réaffiché avec l'alerte rouge « Veuillez indiquer la date et l'heure du rendez-vous. », aucune erreur 500. Sans contournement, le navigateur bloque d'abord l'envoi (« Veuillez renseigner ce champ ») |
+| Date passée (01/11/2026 11:08), après suppression de l'attribut `min` | Alerte rouge « La date du rendez-vous doit être dans le futur. » |
+| Rendez-vous valide (10/11/2026 12:15, Dr Martin, IRM cardiaque) | Créé, visible dans « Mes rendez-vous » au statut « En attente », heure de Paris correcte |
+
+La modification d'un rendez-vous et l'API n'ont pas été testées manuellement en production à ce stade. Ces tests ont aussi mis en évidence le défaut traité dans la fiche 13.
 
 ### Commits concernés
 
@@ -922,6 +933,87 @@ Ce sont des règles métier, donc des évolutions fonctionnelles, et non des dé
 
 **Comment l'heure est-elle gérée ?**
 La date saisie est interprétée à l'heure de Paris, stockée en UTC, et comparée à l'heure actuelle avec un fuseau explicite : la règle « dans le futur » ne dépend pas du fuseau du serveur.
+
+---
+
+## Fiche 13 — Listes en cascade restaurées après une erreur de validation
+
+**Date :** 3 novembre 2026 · **Type :** corrective
+
+> **Résumé oral (30 secondes).** Pendant mes tests manuels en production, j'ai constaté qu'après une erreur de validation, la date et les notes étaient conservées, mais que les cinq listes en cascade (région, ville, clinique, spécialiste, type d'examen) revenaient à zéro : le patient devait tout ressaisir. Ces listes sont construites en JavaScript à partir de l'API, et la page réaffichée repartait de son état initial. J'ai retenu une solution où le serveur renvoie les choix déjà faits, et où le JavaScript recharge chaque niveau dans l'ordre pour les resélectionner. Les tests côté serveur et une vérification dans un navigateur montrent que les choix sont restaurés, sans changer le fonctionnement normal.
+
+### Constat
+
+Lors de mes tests manuels de la fiche 12 en production, **j'ai constaté** qu'après chaque erreur de validation (date vide, date passée), le formulaire était bien réaffiché avec le message d'erreur, la date et les notes, mais que **les listes région, ville, clinique, spécialiste et type d'examen revenaient à leur état initial**. Le défaut se reproduisait à chaque fois : le patient devait refaire toute la sélection.
+
+### Analyse
+
+L'analyse du code a montré que :
+- seule la liste des régions est générée par le serveur ; les quatre suivantes sont remplies en JavaScript, par des appels à l'API (`/appointments/api/cities/…`, `clinics`, `specialists`, `exam-types`), au fur et à mesure des choix ;
+- la vue renvoyait le formulaire et ses erreurs, mais aucune information sur les choix des listes : la page réaffichée repartait donc de zéro ;
+- chaque niveau dépend du précédent : on ne peut pas sélectionner une clinique tant que la liste des cliniques de la ville n'a pas été chargée.
+
+### Solution
+
+| Élément | Choix retenu |
+|---|---|
+| Serveur | Après une erreur, la vue renvoie au template les valeurs choisies (`region`, `city`, `clinic`, `specialist`, `exam_type`) ; au premier affichage, la sélection est vide |
+| Transmission au JavaScript | Filtre Django `json_script`, qui place les données dans une balise `<script type="application/json">` en échappant `<`, `>` et `&` : une valeur forgée ne peut pas injecter de script |
+| JavaScript | Une fonction de chargement par niveau (`loadCities`, `loadClinics`, `loadSpecialists`, `loadExamTypes`), qui renvoie une promesse ; les écouteurs `change` utilisent ces fonctions, donc le fonctionnement normal est inchangé |
+| Restauration | Une fonction `restoreSelection` (`async`/`await`) sélectionne la région, attend le chargement des villes, sélectionne la ville, et ainsi de suite jusqu'au type d'examen ; elle s'arrête au premier choix qui n'existe plus dans la liste |
+| URL de l'API | Les valeurs placées dans les URL sont encodées (`encodeURIComponent`), par exemple pour une ville contenant un espace ou un accent |
+
+### Tests réalisés
+
+**Tests automatisés côté serveur** (3, dans `AppointmentValidationTests`) :
+- après une erreur de validation, les cinq valeurs choisies sont renvoyées à la page et présentes dans la balise `json_script` ;
+- au premier affichage, la sélection est vide ;
+- une valeur forgée contenant `</script><script>…` est échappée et n'apparaît jamais telle quelle dans la page.
+
+Les 3 tests échouent sur l'ancien code et passent sur le nouveau.
+
+**Vérification dans un navigateur, en local** (Chrome en mode headless piloté par un script, base locale, sans création de rendez-vous) :
+
+| Étape | Résultat |
+|---|---|
+| Premier affichage | Seule la liste des régions est active |
+| Saisie normale de la cascade | Chaque choix charge le niveau suivant |
+| Envoi avec une date passée (attribut `min` retiré) | Message d'erreur affiché, **les cinq listes resélectionnées**, notes conservées |
+| Envoi avec une date vide (attribut `required` retiré) | Même résultat |
+| Région vidée après la restauration | Les quatre listes suivantes sont réinitialisées et désactivées : le fonctionnement normal est conservé |
+| Saisie valide après la restauration | Passage à l'écran de confirmation avec la bonne date |
+| Console du navigateur | Aucune erreur JavaScript |
+
+**Tests manuels en production :** à réaliser après le déploiement — provoquer une erreur de validation (date vide ou passée, en contournant le navigateur) et vérifier que les cinq listes sont resélectionnées ; puis changer de région pour vérifier que la cascade se réinitialise.
+
+### Commits concernés
+
+| Commit | Message |
+|---|---|
+| `9aecb1c` | `fix: restore cascading selects after validation error` |
+
+### Compétences mobilisées
+
+- **B2.2** Assurer la maintenance corrective d'une solution applicative : défaut constaté en production, corrigé et vérifié.
+- **B2.1** Concevoir et développer une solution applicative : JavaScript asynchrone (promesses, `async`/`await`), échange de données entre le serveur et le navigateur.
+- *Secondaires :* **B3.5** Cybersécurité de la solution applicative (échappement des données renvoyées au navigateur) ; **B1.5** Mettre à disposition un service (prise en compte d'un retour d'usage).
+
+### Questions probables du jury
+
+**Pourquoi ne pas générer les listes directement côté serveur ?**
+Ce serait possible, mais il faudrait dupliquer en Python la logique de filtrage déjà assurée par l'API et le JavaScript, et maintenir deux façons de construire les mêmes listes. Réutiliser les fonctions de chargement existantes garde une seule source de vérité : l'API.
+
+**Pourquoi charger les niveaux dans l'ordre ?**
+Chaque liste dépend du choix précédent, et son contenu arrive de manière asynchrone. Sélectionner une clinique avant que la liste des cliniques de la ville soit arrivée ne ferait rien. `await` attend la fin de chaque chargement avant de passer au niveau suivant.
+
+**Pourquoi `json_script` plutôt qu'écrire les valeurs directement dans le JavaScript ?**
+Les valeurs viennent de la requête : elles peuvent être forgées. Les insérer telles quelles dans une balise `<script>` permettrait une injection de code (XSS). `json_script` échappe les caractères dangereux, et un test le vérifie avec une valeur contenant `</script>`.
+
+**Que se passe-t-il si un choix n'existe plus (clinique supprimée entre-temps, valeur modifiée) ?**
+La restauration s'arrête au premier niveau dont la valeur n'est pas dans la liste : les niveaux précédents restent sélectionnés, et le patient reprend la sélection à partir de là. Aucune erreur n'est affichée dans le navigateur.
+
+**Comment avez-vous testé du JavaScript ?**
+De deux façons : des tests automatisés côté serveur, qui vérifient les données transmises à la page, et une vérification dans un vrai navigateur piloté par un script, qui reproduit le parcours du patient. La suite automatisée ne contient pas encore de test de bout en bout ; c'est une évolution identifiée (voir « Limites connues »).
 
 ---
 
@@ -985,7 +1077,7 @@ Ces vérifications se relancent en quelques secondes, en local depuis le dossier
 python manage.py test
 ```
 
-Résultat attendu : `Ran 61 tests in …s` puis `OK`. Django crée puis supprime une base `test_healthnorth` : le rôle PostgreSQL utilisé doit avoir le droit de créer une base (sinon, lancer la commande avec un `DATABASE_URL` pointant vers un rôle local qui a ce droit).
+Résultat attendu : `Ran 64 tests in …s` puis `OK`. Django crée puis supprime une base `test_healthnorth` : le rôle PostgreSQL utilisé doit avoir le droit de créer une base (sinon, lancer la commande avec un `DATABASE_URL` pointant vers un rôle local qui a ce droit).
 
 **2. Migration 0005 sans SQL**
 
@@ -1058,7 +1150,8 @@ Résultats attendus : `System check identified no issues (0 silenced).` et `No c
 - **Mise en veille du service gratuit Render.** Le service s'arrête après 15 minutes sans trafic et met environ une minute à redémarrer : le premier chargement est lent. Avant l'oral, ouvrir le site quelques minutes à l'avance ; une offre payante supprimerait cette veille.
 - **Incident du 2 novembre 2026, vers minuit.** Le site était injoignable alors que le tableau de bord Render l'affichait « Live », et aucune requête n'apparaissait dans les logs. **« Restart service » n'a rien changé** ; c'est **« Deploy latest commit »**, c'est-à-dire le redéploiement du même commit, qui a rétabli le site. **La cause n'a pas été identifiée.** Évolution : une surveillance externe (sonde HTTP périodique) pour détecter ce type d'indisponibilité.
 - **Mise en veille de Neon.** Le calcul se met en veille après 5 minutes d'inactivité ; la reprise prend quelques centaines de millisecondes à la première requête.
-- **Intégration continue.** Les 61 tests sont lancés manuellement avant chaque commit. Évolution : exécution automatique à chaque push (GitHub Actions), avec blocage du déploiement en cas d'échec.
+- **Intégration continue.** Les 64 tests sont lancés manuellement avant chaque commit. Évolution : exécution automatique à chaque push (GitHub Actions), avec blocage du déploiement en cas d'échec.
+- **Tests de bout en bout.** Le comportement JavaScript (listes en cascade) n'est pas couvert par la suite automatisée : il a été vérifié par un script ponctuel dans un navigateur (fiche 13). Évolution : tests de bout en bout (Playwright ou Selenium) exécutés avec la suite.
 - **Sauvegardes.** Aucune procédure de sauvegarde ni de restauration de la base n'est formalisée (`pg_dump` planifié, ou fonctionnalités de restauration de Neon).
 
 ### Évolutions fonctionnelles volontairement non réalisées
@@ -1097,3 +1190,4 @@ Ces règles métier n'ont pas été implémentées, pour limiter le périmètre 
 | `3a2ac18` | 02/11/2026 | `fix: display login error messages` | 11 |
 | `47ce05a` | 02/11/2026 | `fix: validate appointment data server-side` | 12 |
 | `8471256` | 02/11/2026 | `fix: read Bruno login password from a local env file` | 3 |
+| `9aecb1c` | 03/11/2026 | `fix: restore cascading selects after validation error` | 13 |
